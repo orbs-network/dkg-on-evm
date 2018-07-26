@@ -111,12 +111,12 @@ contract dkg {
     uint16 public t; // threshold
     uint16 public n; // numer of participants;
     uint16 public curN; // current num of participants
+    uint16 public curNumCommittedLeft; // current num of participants that haven't committed 
     
     uint256 public phaseStart;
-    uint256 public constant commitTimeout = 100;
-
-
-
+    uint256 public constant joinTimeout = 100;
+    uint256 public constant commitTimeout = 200;
+    uint256 public constant postCommitTimeout = 150;
 
 
     // mapping from node's index to a participant
@@ -127,13 +127,11 @@ contract dkg {
     {
         t = threshold;
         n = numParticipants;
+        curNumCommittedLeft = numParticipants;
         depositWei = deposit;
-
         curPhase = Phase.Enrollment;
 
-        if (n <= t || t == 0) {
-            revert("wrong input");
-        }
+        require(n > t && t > 0, "wrong input");
 
 
         phaseStart = block.number;
@@ -142,23 +140,23 @@ contract dkg {
 
 
     modifier checkDeposit() {
-        if (msg.value != depositWei) revert("wrong deposit");
+        require(msg.value == depositWei, "wrong deposit");
         _;
     }
     modifier checkAuthorizedSender(uint16 index) {
-        if (participants[index].ethPk != msg.sender) revert("not authorized sender");
+        require(participants[index].ethPk == msg.sender, "not authorized sender");
         _; 
     }
     modifier beFalse(bool term) {
-        if (term) revert();
+        require(!term);
         _;
     }
     modifier inPhase(Phase phase) {
-        if(curPhase != phase) revert("wrong phase");
+        require(curPhase == phase, "wrong phase");
         _;
     }
     modifier notInPhase(Phase phase) {
-        if(curPhase == phase) revert("wrong phase");
+        require(curPhase != phase, "wrong phase");
         _;
     }
 
@@ -173,23 +171,23 @@ contract dkg {
         external payable 
         returns(uint16 index)
     {
-        // TODO: phase timeout, check pk
+        // TODO: check pk
 
         uint16 cn = curN;
         address sender = msg.sender;
-        
 
         // Check the pk isn't registered already
         for(uint16 i = 1; i <= cn; i++) {
-            if(participants[i].ethPk == sender) {
-                revert("already joined");
-            }
+            require(participants[i].ethPk != sender, "already joined");
         }
 
         cn++;
         participants[cn] = Participant({ethPk: sender, encPk: encPk, isCommitted: false});
 
         curN = cn;
+        if(cn == 1) {
+            phaseStart = block.number;
+        } 
 
         // Abort if capacity on participants was reached
         if(cn == n) {
@@ -238,10 +236,10 @@ contract dkg {
         
         assignCommitments(senderIndex, pubCommitG1, pubCommitG2, encPrCommit);
 
-        uint16 committedNum = curN - 1;
-        curN = committedNum;
+        uint16 committedNumLeft = curNumCommittedLeft - 1;
+        curNumCommittedLeft = committedNumLeft;
 
-        if(committedNum == 0) {
+        if(committedNumLeft == 0) {
             curPhase = Phase.PostCommit; 
             phaseStart = block.number;
             emit PhaseChange(Phase.PostCommit);
@@ -260,12 +258,10 @@ contract dkg {
         uint16 threshold = t;
 
         // Verify input size
-        if(pubCommitG1.length != (threshold*2 + 2) 
-           || pubCommitG2.length != (threshold*4 + 4)
-           || prCommit.length != nParticipants) {
-            
-            revert("input size invalid");
-        } 
+        require(pubCommitG1.length == (threshold*2 + 2) 
+            && pubCommitG2.length == (threshold*4 + 4)
+            && prCommit.length == nParticipants, 
+            "input size invalid");
 
         // Assign public commitments from G1 and G2
         for(uint16 i = 0; i < (threshold+1); i++) {
@@ -287,7 +283,7 @@ contract dkg {
     }
 
 
-    // Call this when in Phase.PostCommit for more than commitTimeout
+    // Call this when in Phase.PostCommit for more than postCommitTimeout
     // blocks and no comlaint has to be made.
     function phaseChange() 
         inPhase(Phase.PostCommit)
@@ -296,17 +292,39 @@ contract dkg {
         
         uint curBlockNum = block.number;
 
-        if(curBlockNum > (phaseStart+commitTimeout)) {
-            curPhase = Phase.EndSuccess; 
-            emit PhaseChange(Phase.EndSuccess);
-            // TODO: return money to all
-            slash(0);
-        }
-        else {
-            revert();
-        }   
+        require(curBlockNum > (phaseStart+postCommitTimeout), "hasn't reached timeout yet");
+        curPhase = Phase.EndSuccess; 
+        emit PhaseChange(Phase.EndSuccess);
+        slash(0);  
     }
 
+    // Call this when in Phase.Enrollment for more than joinTimeout
+    // blocks and not enough members have joined.
+    function joinTimedOut() 
+        inPhase(Phase.Enrollment)
+        external 
+    {
+        uint curBlockNum = block.number;
+
+        require(curBlockNum > (phaseStart+joinTimeout), "hasn't reached timeout yet");
+        curPhase = Phase.EndFail; 
+        emit PhaseChange(Phase.EndFail);
+        slash(0);  
+    }
+
+    // Call this when in Phase.Commit for more than commitTimeout
+    // blocks and not enough members have committed.
+    function commitTimedOut() 
+        inPhase(Phase.Commit)
+        external 
+    {
+        uint curBlockNum = block.number;
+
+        require(curBlockNum > (phaseStart+commitTimeout), "hasn't reached timeout yet");
+        curPhase = Phase.EndFail; 
+        emit PhaseChange(Phase.EndFail);
+        slashUncommitted();  
+    }
 
     // Returns the group PK.
     // This can only be performed after the DKG has ended. This
@@ -437,12 +455,12 @@ contract dkg {
 
 
     // Divides the deposited balance in the contract between
-    // the enrolled paricipants except for the participant
+    // the enrolled participants except for the participant
     // with the slashedIndex. Send slashedIndex = 0 in order
     // to divide it between all the participants (no slashing).
     function slash(uint16 slashedIndex) private {
         
-        uint16 nParticipants = n;
+        uint16 nParticipants = curN;
         uint256 amount;
         if (slashedIndex == 0) {
             amount = address(this).balance/nParticipants;
@@ -453,9 +471,25 @@ contract dkg {
 
         for (uint16 i = 1; i < (nParticipants+1); i++) {
             if (i != slashedIndex) {
-                if (!participants[i].ethPk.send(amount)) {
-                    revert();
-                }
+                require(participants[i].ethPk.send(amount));
+            }
+        }
+    }
+
+
+    // Divides the deposited balance in the contract between
+    // all the committed paricipants.
+    function slashUncommitted() private {
+        
+        uint16 nParticipants = curN;
+        uint16 committedNum = nParticipants - curNumCommittedLeft;
+        uint256 amount = address(this).balance/committedNum;
+
+        for (uint16 i = 1; i < (nParticipants+1); i++) {
+            Participant memory part = participants[i];
+            
+            if (part.isCommitted) {
+                require(part.ethPk.send(amount));
             }
         }
     }

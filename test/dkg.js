@@ -24,6 +24,7 @@ const errTypes = {
 };
 
 
+
 contract('DKG happy-flow', async (accounts) => {
   accounts.shift(); // the first account will only deploy the contract
 
@@ -289,7 +290,112 @@ contract('DKG justified complaint - public commitment', async (accounts) => {
 });
 
 
+contract('DKG unjustified complaint - pub commit G1 not on the curve', async (accounts) => {});
 
+contract('DKG justified complaint - pub commit G1 not on the curve', async (accounts) => {});
+
+contract('DKG unjustified complaint - pub commit G2 not on the curve', async (accounts) => {});
+
+contract('DKG justified complaint - pub commit G2 not on the curve', async (accounts) => {});
+
+contract('DKG enrollment timeout', async (accounts) => {
+  it("Post-Deploy check", async() => {
+    let instance = await dkg.deployed();
+    await postDeploy(instance);
+  });
+
+  it("Join only some of the participants", async() => {
+    let instance = await dkg.deployed();
+    let numOfParticipants = 1;
+    await join(instance, accounts, happyFlowData.pks, numOfParticipants);
+  });
+
+  it("Wait for enrollment timeout to pass", async() => {
+    let instance = await dkg.deployed();
+    let timeout = await instance.joinTimeout.call(); 
+    await mineEmptyBlocks(timeout);
+  });
+
+  it("Close the contract", async() => {
+    let instance = await dkg.deployed();
+    
+    let deposit = await instance.depositWei.call();
+    let n = await instance.curN.call();
+    let numOfParticipants = n.toNumber();
+    const callerIndex = 0;
+
+    let funcEndEnrollment = async () => {
+      return await endEnrollment(instance, accounts[callerIndex]);
+    }
+    let res = await getAccountsBalancesDiffAfterFunc(instance, accounts, funcEndEnrollment);
+    
+    let gasPrice = dkg.class_defaults.gasPrice;
+    res.balancesAfter[callerIndex] += res.gasUsed*gasPrice;        
+  
+    let ethReceived = deposit.toNumber();
+    for(var i = 0; i < numOfParticipants; i++) {
+      assert.equal(Math.round(res.balancesAfter[i]/gasPrice), Math.round(ethReceived/gasPrice), 
+        "Participant deposit should return");
+    }
+  });
+
+  it("Check DKG ended with failure", async () => {
+    let instance = await dkg.deployed();
+    await contractEndFail(instance);
+  });
+});
+
+contract('DKG commit timeout', async (accounts) => {
+  it("Post-Deploy check", async() => {
+    let instance = await dkg.deployed();
+    await postDeploy(instance);
+  });
+
+  it("Join", async() => {
+    let instance = await dkg.deployed();
+    await join(instance, accounts, happyFlowData.pks);
+  });
+
+  it("Commit only some of the participants", async () => {
+    let instance = await dkg.deployed();
+    let numOfParticipants = 1;
+    await commit(instance, accounts, 
+      happyFlowData.pubCommitG1, happyFlowData.pubCommitG2, happyFlowData.prvCommitEnc, numOfParticipants);
+  });
+
+  it("Wait for commit timeout to pass", async() => {
+    let instance = await dkg.deployed();
+    let timeout = await instance.commitTimeout.call(); 
+    await mineEmptyBlocks(timeout);
+  });
+
+  it("Close the contract", async() => {
+    let instance = await dkg.deployed();
+    
+    let totalDeposit = await web3.eth.getBalance(dkg.address);
+    const numOfParticipantsCommitted = 1;
+    const callerIndex = 0;
+
+    let funcEndCommit = async () => {
+      return await endCommit(instance, accounts[callerIndex]);
+    }
+    let res = await getAccountsBalancesDiffAfterFunc(instance, accounts, funcEndCommit);
+    
+    let gasPrice = dkg.class_defaults.gasPrice;
+    res.balancesAfter[callerIndex] += res.gasUsed*gasPrice;        
+  
+    let ethReceived = totalDeposit.toNumber()/numOfParticipantsCommitted;
+    for(var i = 0; i < numOfParticipantsCommitted; i++) {
+      assert.equal(Math.round(res.balancesAfter[i]/gasPrice), Math.round(ethReceived/gasPrice), 
+        "Participant deposit should return");
+    }
+  });
+
+  it("Check DKG ended with failure", async () => {
+    let instance = await dkg.deployed();
+    await contractEndFail(instance);
+  });
+});
 
 /**
  * Asserts the instance's phase is phaseNum.
@@ -340,6 +446,15 @@ function forceMineBlocks(numOfBlockToMine) {
 }
 
 
+async function mineEmptyBlocks(numOfBlockToMine) {
+  let latestBlock = await web3.eth.getBlock("latest");
+  let startBlockNum = latestBlock.number;
+  await forceMineBlocks(numOfBlockToMine);
+  latestBlock = await web3.eth.getBlock("latest");
+  assert(latestBlock.number-numOfBlockToMine == startBlockNum, "Not enough empty blocks were mined");
+}
+
+
 async function postDeploy(instance) {
   let n = await instance.n.call();
   let t = await instance.t.call();
@@ -347,9 +462,11 @@ async function postDeploy(instance) {
 }
 
 
-async function join(instance, accounts, pks) {
+async function join(instance, accounts, pks, numOfParticipants) {
+
   let n = await instance.n.call();
-  let numOfParticipants = n.toNumber();
+  numOfParticipants = numOfParticipants ? numOfParticipants : n.toNumber();
+  
   let indices = _.range(1, numOfParticipants+1);
   let deposit = await instance.depositWei.call();
 
@@ -374,10 +491,10 @@ async function join(instance, accounts, pks) {
 }
 
 
-async function commit(instance, accounts, pubCommitG1Data, pubCommitG2Data, prvCommitEncData) {
+async function commit(instance, accounts, pubCommitG1Data, pubCommitG2Data, prvCommitEncData, numOfParticipants) {
   let n = await instance.n.call();
-  let numOfParticipants = n.toNumber();
-  let indices = _.range(1, numOfParticipants+1);
+  numOfParticipants = numOfParticipants ? numOfParticipants : n.toNumber();
+  let indices = _.range(1, n.toNumber()+1);
   let t = await instance.t.call();
   let threshold = t.toNumber();
 
@@ -420,10 +537,24 @@ async function postCommit(instance, callerAccount) {
 
 
 async function phaseChange(instance, callerAccount) {
-  let timeout = await instance.commitTimeout.call(); 
+  let timeout = await instance.postCommitTimeout.call(); 
   await forceMineBlocks(timeout.toNumber());
   let arg = callerAccount ? {from: callerAccount} : {};
   let res = await instance.phaseChange(arg);
+  return res.receipt.gasUsed;
+}
+
+
+async function endEnrollment(instance, callerAccount) {
+  let arg = callerAccount ? {from: callerAccount} : {};
+  let res = await instance.joinTimedOut(arg);
+  return res.receipt.gasUsed;
+}
+
+
+async function endCommit(instance, callerAccount) {
+  let arg = callerAccount ? {from: callerAccount} : {};
+  let res = await instance.commitTimedOut(arg);
   return res.receipt.gasUsed;
 }
 
