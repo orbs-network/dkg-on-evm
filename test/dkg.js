@@ -2,6 +2,8 @@ const dkg = artifacts.require("./dkg.sol");
 const util = require('util');
 const happyFlowData = require('./testsData/happyFlowData.js');
 const corruptedData = require('./testsData/corruptedData.js');
+const corruptedData2 = require('./testsData/corruptedData2.js');
+
 const async = require("async");
 
 const phase = {
@@ -290,13 +292,130 @@ contract('DKG justified complaint - public commitment', async (accounts) => {
 });
 
 
-contract('DKG unjustified complaint - pub commit G1 not on the curve', async (accounts) => {});
+contract('DKG unjustified complaint - public commitment G1 not on the curve', async (accounts) => {
+  it("Post-Deploy check", async() => {
+    let instance = await dkg.deployed();
+    await postDeploy(instance);
+  });
 
-contract('DKG justified complaint - pub commit G1 not on the curve', async (accounts) => {});
+  it("Join", async() => {
+    let instance = await dkg.deployed();
+    await join(instance, accounts, happyFlowData.pks);
+  });
+
+  it("Commit", async () => {
+    let instance = await dkg.deployed();
+    await commit(instance, accounts, 
+      happyFlowData.pubCommitG1, happyFlowData.pubCommitG2, happyFlowData.prvCommitEnc);
+  });
+
+  it("Unjustified Complaint: public commitment G1 IS(!) on the curve", async () => {
+    const complainer = 0;
+    const accused = 1;
+    let instance = await dkg.deployed();
+    let n = await instance.n.call();
+    let numOfParticipants = n.toNumber();
+    let t = await instance.t.call();
+    let threshold = t.toNumber();
+
+    let funcComplain = async () => {
+      let pubCommitInd = Math.floor((Math.random() * (threshold+1)));   
+      return await complainNotInG1(instance, accounts, complainer, accused, pubCommitInd);
+    }
+    let res = await getAccountsBalancesDiffAfterFunc(instance, accounts, funcComplain);
+    let gasPrice = dkg.class_defaults.gasPrice;
+    res.balancesAfter[complainer] += gasPrice * res.gasUsed;
+    for(var i = 0; i < numOfParticipants; i++) {
+      assert.equal(Math.round(res.balancesAfter[i]/gasPrice), 0, "No reward nor slashing should occur");
+    }
+  });
+
+  it("Post-Commit", async () => {
+    const callerIndex = 0;
+    let instance = await dkg.deployed();
+    
+    let deposit = await instance.depositWei.call();
+    let n = await instance.n.call();
+    let numOfParticipants = n.toNumber();
+
+    let funcPostCommit = async () => {
+      return await postCommit(instance, accounts[callerIndex]);
+    }
+    let res = await getAccountsBalancesDiffAfterFunc(instance, accounts, funcPostCommit);
+    
+    let gasPrice = dkg.class_defaults.gasPrice;
+    res.balancesAfter[callerIndex] += res.gasUsed*gasPrice;        
+  
+    let ethReceived = deposit.toNumber();
+    for(var i = 0; i < numOfParticipants; i++) {
+      assert.equal(Math.round(res.balancesAfter[i]/gasPrice), Math.round(ethReceived/gasPrice), 
+        "Participant deposit should return");
+    }
+  });
+
+  it("Check DKG ended successfully", async () => {
+    let instance = await dkg.deployed();
+    await contractEndSuccess(instance);
+  });
+});
+
+contract('DKG justified complaint - pub commit G1 not on the curve', async (accounts) => {
+  it("Post-Deploy check", async() => {
+    let instance = await dkg.deployed();
+    await postDeploy(instance);
+  });
+
+  it("Join", async() => {
+    let instance = await dkg.deployed();
+    await join(instance, accounts, corruptedData2.pks);
+  });
+
+  it("Commit", async () => {
+    let instance = await dkg.deployed();
+    await commit(instance, accounts, 
+      corruptedData2.pubCommitG1, corruptedData2.pubCommitG2, corruptedData2.prvCommitEnc);
+  });
+
+  it("Justified Complaint: public commitment G1 is NOT on the curve", async () => {
+    const complainer = 0;
+    const accused = 1;
+    const pubCommitInd = 0;
+    let instance = await dkg.deployed();
+    let deposit = await instance.depositWei.call();
+    let n = await instance.n.call();
+    let numOfParticipants = n.toNumber();
+
+    let funcComplain = async () => {
+      return await complainNotInG1(instance, accounts, complainer, accused, pubCommitInd);
+    }
+    let res = await getAccountsBalancesDiffAfterFunc(instance, accounts, funcComplain);
+    let gasPrice = dkg.class_defaults.gasPrice;
+    res.balancesAfter[complainer] += gasPrice * res.gasUsed;
+    let ethReceived = deposit.toNumber() * numOfParticipants / (numOfParticipants-1);
+    for(var i = 0; i < numOfParticipants; i++) {
+      if(i != accused)
+      {
+        assert.equal(Math.round(res.balancesAfter[i]/gasPrice), Math.round(ethReceived/gasPrice), 
+          "Participant reward from slashing error");
+      }
+      else
+      {
+        assert.equal(res.balancesAfter[i], 0, 
+          "Slashed participant balance should remain unchanged");
+      }
+    }
+  });
+
+  it("Check DKG ended with failure", async () => {
+    let instance = await dkg.deployed();
+    await contractEndFail(instance);
+  });
+});
 
 contract('DKG unjustified complaint - pub commit G2 not on the curve', async (accounts) => {});
 
 contract('DKG justified complaint - pub commit G2 not on the curve', async (accounts) => {});
+
 
 contract('DKG enrollment timeout', async (accounts) => {
   it("Post-Deploy check", async() => {
@@ -344,6 +463,7 @@ contract('DKG enrollment timeout', async (accounts) => {
     await contractEndFail(instance);
   });
 });
+
 
 contract('DKG commit timeout', async (accounts) => {
   it("Post-Deploy check", async() => {
@@ -605,6 +725,21 @@ async function complainPubCommitment(instance, accounts, complainerIndex, accuse
   let numOfParticipants = n.toNumber();
   let indices = _.range(1, numOfParticipants+1);
   let res = await instance.complaintPublicCommit(
+    indices[complainerIndex], 
+    indices[accusedIndex], 
+    pubCommitIndex, 
+    {from: accounts[complainerIndex]}
+  );
+  return res.receipt.gasUsed;
+}
+
+
+async function complainNotInG1(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
+  await verifyPhase(phase.postCommit, instance);
+  let n = await instance.n.call();
+  let numOfParticipants = n.toNumber();
+  let indices = _.range(1, numOfParticipants+1);
+  let res = await instance.complaintNotInG1(
     indices[complainerIndex], 
     indices[accusedIndex], 
     pubCommitIndex, 

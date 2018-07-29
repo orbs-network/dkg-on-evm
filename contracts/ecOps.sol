@@ -6,6 +6,7 @@ library ecOps {
     ////////////////////////////////////////////////////////
 
     // The curve y^2 = x^3 + a*x + b (x,y in modulo n field)
+    uint256 public constant b = 3;
     uint256 public constant p = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47;
     uint256 public constant q = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
 
@@ -44,14 +45,14 @@ library ecOps {
     }
 
 
-    function pairingCheck(uint256[2] a, uint256[4] x, uint256[2] b, uint256[4] y) 
+    function pairingCheck(uint256[2] x, uint256[4] w, uint256[2] y, uint256[4] z) 
         internal 
         returns (bool) 
     {
         //returns e(a,x) == e(b,y)
         uint256[12] memory input = [
-            a[0], a[1], x[0], x[1], x[2], x[3], 
-            b[0], p - b[1], y[0], y[1], y[2], y[3]
+            x[0], x[1], w[0], w[1], w[2], w[3], 
+            y[0], p - y[1], z[0], z[1], z[2], z[3]
         ];
         uint[1] memory result;
 
@@ -69,5 +70,23 @@ library ecOps {
         returns(bool isEqual)
     {
         return (p1[0] == p2[0] && p1[1] == p2[1]);
+    }
+
+
+    // Returns true iff p1 is in G1 group
+    function isInG1(uint256[2] p1) public pure
+        returns(bool)
+    {
+        if (p1[0] == 0 && p1[1] == 0) {
+            return true;
+        }
+
+        uint256 x3 = mulmod(p1[0], p1[0], p);
+        x3 = mulmod(x3, p1[0], p);
+        x3 = addmod(x3, b, p);
+        uint256 y2 = mulmod(p1[1], p1[1], p);
+
+        return x3 == y2;
+
     }
 }
