@@ -1,7 +1,7 @@
 const dkg = artifacts.require('./dkg.sol');
 const util = require('util');
 const dkgUtils = require('./utils.js');
-const constants = require('../testsData/constants.js')
+const constants = require('../testsData/constants.js');
 
 /**
  * Asserts the instance's phase is phaseNum.
