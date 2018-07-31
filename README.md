@@ -9,6 +9,7 @@ Compatible with [BGLS](https://github.com/orbs-network/bgls) library.
 * Node.js (tested on v10.6.0)
 * [truffle](https://truffleframework.com/)
     > install: `npm install -g truffle`
+* [Ganache](https://truffleframework.com/ganache)
 
 ### Installation
 ```
