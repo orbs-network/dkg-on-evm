@@ -473,6 +473,25 @@ contract dkg {
     }
 
 
+    // A complaint that the accused participant has committed to a non-G2
+    // curve point.
+    function complaintNotInG2(uint16 complainerIndex, uint16 accusedIndex, uint16 coefIndex)
+        checkAuthorizedSender(complainerIndex)
+        notInPhase(Phase.EndFail)
+        notInPhase(Phase.EndSuccess)
+        public
+    {
+        Participant storage accused = participants[accusedIndex];
+        if(accused.isCommitted) {
+            if(!ecOps.isInG2(accused.publicCommitmentsG2[coefIndex])) {
+                curPhase = Phase.EndFail;
+                emit PhaseChange(Phase.EndFail);
+                slash(accusedIndex);
+            }
+        }
+    }
+
+
     // Divides the deposited balance in the contract between
     // the enrolled participants except for the participant
     // with the slashedIndex. Send slashedIndex = 0 in order
