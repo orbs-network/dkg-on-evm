@@ -40,7 +40,6 @@ async function complainPubCommitment(instance, accounts, complainerIndex, accuse
 }
 
 
-
 async function complainNotInG1(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   let n = await instance.n.call();
@@ -55,9 +54,26 @@ async function complainNotInG1(instance, accounts, complainerIndex, accusedIndex
   return res.receipt.gasUsed;
 }
 
+
+async function complainNotInG2(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
+  await general.verifyPhase(constants.phase.postCommit, instance);
+  let n = await instance.n.call();
+  let numOfParticipants = n.toNumber();
+  let indices = _.range(1, numOfParticipants+1);
+  let res = await instance.complaintNotInG2(
+    indices[complainerIndex], 
+    indices[accusedIndex], 
+    pubCommitIndex, 
+    {from: accounts[complainerIndex]}
+  );
+  return res.receipt.gasUsed;
+}
+
+
 module.exports = {
   contractEndFail,
   complainPrvCommitment,
   complainPubCommitment,
-  complainNotInG1
+  complainNotInG1,
+  complainNotInG2
 };
