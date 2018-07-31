@@ -7,7 +7,7 @@ Compatible with [BGLS](https://github.com/orbs-network/bgls) library.
 
 ### Prerequisites
 * Node.js (tested on v10.6.0)
-* truffle
+* [truffle](https://truffleframework.com/)
     > install: `npm install -g truffle`
 
 ### Installation
