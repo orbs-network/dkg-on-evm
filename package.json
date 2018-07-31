@@ -1,0 +1,26 @@
+{
+    "name": "dkg-on-evm",
+    "version": "1.0.0",
+    "description": "",
+    "main": "",
+    "directories": {
+      "test": "test"
+    },
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/orbs-network/dkg-on-evm.git"
+    },
+    "author": "Orbs",
+    "license": "MIT",
+    "bugs": {
+      "url": "https://github.com/orbs-network/dkg-on-evm/issues"
+    },
+    "homepage": "https://github.com/orbs-network/dkg-on-evm#readme",
+    "dependencies": {
+      "async": "^2.6.1",
+      "truffle": "^4.1.13"
+    }
+  }
