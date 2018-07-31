@@ -31,7 +31,7 @@ npm install
 * testComplaints.js - tests justified/unjustified complaints.
 * testTimeouts.js - tests timeouts occurnce in enrollment and commitment phases.
 
-### Simulation
+## Simulation
 To be added
 
 ## License
