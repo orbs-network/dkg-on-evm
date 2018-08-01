@@ -31,6 +31,9 @@ npm install
 * testComplaints.js - tests justified/unjustified complaints.
 * testTimeouts.js - tests timeouts occurnce in enrollment and commitment phases.
 
+### Test issues
+* The tests take rather long this would be fixed in the future. Right now it seems that generating in the Ganache the minimum number of accounts fot the test (i.e., 3 accounts) decreases the test time substantially.
+
 ## Simulation
 To be added
 
