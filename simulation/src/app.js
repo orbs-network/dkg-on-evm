@@ -415,18 +415,18 @@ async function sendComplaint(complainerIndex, accusedIndex) {
     const accusedEncPk = await dkgContract.getParticipantPkEnc.call(accusedID);
     const encPrvCommit = await dkgContract.getParticipantPrvCommit.call(accusedID, complainerID);
     const pubCommitG1_0 = await dkgContract.getParticipantPubCommitG1.call(accusedID, 0);
-    const pubCommitG1_1 = await dkgContract.getParticipantPubCommitG1.call(accusedID, 1);
+    // const pubCommitG1_1 = await dkgContract.getParticipantPubCommitG1.call(accusedID, 1);
     const pubCommitG1_t = await dkgContract.getParticipantPubCommitG1.call(accusedID, THRESHOLD);
 
-    const g0_res = await dkgContract.ecmul.call(pubCommitG1_0, 2);
-    const g1_res = await dkgContract.ecmul.call(pubCommitG1_1, 2);
-    const gt_res = await dkgContract.ecmul.call(pubCommitG1_t, 2);
+    // const g0_res = await dkgContract.ecmul.call(pubCommitG1_0, 2);
+    // const g1_res = await dkgContract.ecmul.call(pubCommitG1_1, 2);
+    // const gt_res = await dkgContract.ecmul.call(pubCommitG1_t, 2);
 
 
     logger.info(`sendComplaint(): Now client ID #${complainerID} THRESHOLD=${THRESHOLD} (addr: ${complainerAddress}) is sending a complaint on client ID #${accusedID}. Phase: ${curPhase} SK: ${complainerSK}`);
     logger.debug(`sendComplaint(): pubCommitG1_0=${pubCommitG1_0[0].toNumber()},${pubCommitG1_0[1].toNumber()} pubCommitG1_t=${pubCommitG1_t[0].toNumber()},${pubCommitG1_t[1].toNumber()}`);
     logger.debug(`sendComplaint(): decrypt(accusedEncPk=${accusedEncPk},complainerSk=${complainerSK},encPrvCommit=${encPrvCommit}`);
-    logger.debug(`sendComplaint(): g0_res=${g0_res} g1_res=${g1_res} gt_res=${gt_res}`);
+    // logger.debug(`sendComplaint(): g0_res=${g0_res} g1_res=${g1_res} gt_res=${gt_res}`);
 
     // const decryptRes = await dkgContract.decrypt.call(accusedEncPk, complainerSK, encPrvCommit);
     // logger.debug(`decrypt() res=${decryptRes}`);
@@ -544,14 +544,14 @@ async function printValuesFromContract() {
     const valuesFromContract = {};
     valuesFromContract.n = await dkgContract.n.call();
     valuesFromContract.t = await dkgContract.t.call();
-    valuesFromContract.p = await dkgContract.p.call();
-    valuesFromContract.q = await dkgContract.q.call();
+    // valuesFromContract.p = await dkgContract.ecOps.p.call();
+    // valuesFromContract.q = await dkgContract.ecOps.q.call();
 
     logger.info("Contract properties:");
     logger.info(` > n: ${valuesFromContract.n.toString()}`);
     logger.info(` > t: ${valuesFromContract.t.toString()}`);
-    logger.info(` > p: ${valuesFromContract.p.toString()}`);
-    logger.info(` > q: ${valuesFromContract.q.toString()}`);
+    // logger.info(` > p: ${valuesFromContract.p.toString()}`);
+    // logger.info(` > q: ${valuesFromContract.q.toString()}`);
 }
 
 function toShortHex(hexStr) {
