@@ -1,18 +1,36 @@
+/**
+ * @typedef {number[2]} G1 
+ * 
+ * @typedef {number[4]} G2 
+ */
+
+
 const general = require('./general.js');
 const util = require('util');
 const dkgUtils = require('./utils.js');
 const constants = require('../testsData/constants.js');
 
 
+/**
+ * Asserts the contract after deployment.
+ * @param {*} instance 
+ */
 async function postDeploy(instance) {
   let n = await instance.n.call();
   let t = await instance.t.call();
   assert(n > t, "the number of participants should be bigger than the threshold");
 }
   
-  
+/**
+ * Joins the maximum amount of participants in the enrollment phase.
+ * Asserts all deposited the right amount.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {G1[]} pks  of each of the participants
+ * @param {number} numOfParticipants 
+ */
 async function join(instance, accounts, pks, numOfParticipants) {
-
+  
   let n = await instance.n.call();
   numOfParticipants = numOfParticipants ? numOfParticipants : n.toNumber();
   
@@ -39,7 +57,17 @@ async function join(instance, accounts, pks, numOfParticipants) {
   await general.verifyContractBalance(expectedBalance);
 }
   
-  
+/**
+ * Commits all the participant by the given data.
+ * Asserts all participant are committed successfully.
+ * 
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {G1[][]} pubCommitG1Data 
+ * @param {G2[][]} pubCommitG2Data 
+ * @param {number[][]} prvCommitEncData 
+ * @param {number} numOfParticipants 
+ */
 async function commit(instance, accounts, pubCommitG1Data, pubCommitG2Data, prvCommitEncData, numOfParticipants) {
   let n = await instance.n.call();
   numOfParticipants = numOfParticipants ? numOfParticipants : n.toNumber();
@@ -79,13 +107,26 @@ async function commit(instance, accounts, pubCommitG1Data, pubCommitG2Data, prvC
   }
 }
   
-  
+/**
+ * Closes the contract after the commit phase .
+ * @param {*} instance 
+ * @param {string} callerAccount the account that will call the tx that 
+ * closes the contract.
+ */
 async function postCommit(instance, callerAccount) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   return await phaseChange(instance, callerAccount);
 }
 
 
+/**
+ * Closes the contract after all are committed (mines blocks automatically so
+ * the timeout expires).
+ * @param {*} instance 
+ * @param {string} callerAccount the account that will call the tx that 
+ * closes the contract.
+ * @returns {number} gas used
+ */
 async function phaseChange(instance, callerAccount) {
   let timeout = await instance.postCommitTimeout.call(); 
   await general.mineEmptyBlocks(timeout.toNumber());
@@ -94,7 +135,11 @@ async function phaseChange(instance, callerAccount) {
   return res.receipt.gasUsed;
 }
 
-
+/**
+ * Asserts contract was closed successfully and that no ether 
+ * is left in the contract.
+ * @param {*} instance 
+ */
 async function contractEndSuccess(instance) {
   await general.verifyPhase(constants.phase.endSuccess, instance);
   await general.verifyContractBalance(0);

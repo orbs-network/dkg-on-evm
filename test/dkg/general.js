@@ -1,3 +1,9 @@
+/**
+ * @typedef {object} Diff
+ * @property {number[]} balancesAfter balances diff
+ * @property {number} gasUsed gas used in the execution
+ */
+
 const dkg = artifacts.require('./dkg.sol');
 const util = require('util');
 const dkgUtils = require('./utils.js');
@@ -14,9 +20,15 @@ async function verifyPhase(phaseNum, instance) {
     util.format("should be in phase number %s but in phase %s", phaseNum, curPhase.toNumber()));
 }
 
-
+/**
+ * Returns the diff of the ether balance in the inputted accounts between
+ * after and before the execution of the function func.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {*} func async function to execute
+ * @returns {Diff}
+ */
 async function getAccountsBalancesDiffAfterFunc(instance, accounts, func) {
-  
   let n = await instance.n.call();
   let numOfParticipants = n.toNumber();
 
@@ -40,6 +52,10 @@ async function getAccountsBalancesDiffAfterFunc(instance, accounts, func) {
 }
 
 
+/**
+ * Assets contract balance is expectedBalance
+ * @param {number} expectedBalance 
+ */
 async function verifyContractBalance(expectedBalance) {
   let contractBalance = await web3.eth.getBalance(dkg.address);
   assert.equal(
@@ -51,7 +67,10 @@ async function verifyContractBalance(expectedBalance) {
 }
 
 
-
+/**
+ * Mines empty numOfBlockToMine blocks
+ * @param {number} numOfBlockToMine 
+ */
 async function mineEmptyBlocks(numOfBlockToMine) {
   let latestBlock = await web3.eth.getBlock("latest");
   let startBlockNum = latestBlock.number;
@@ -60,7 +79,11 @@ async function mineEmptyBlocks(numOfBlockToMine) {
   assert(latestBlock.number-numOfBlockToMine == startBlockNum, "Not enough empty blocks were mined");
 }
 
-
+/**
+ * Assets an error has accour during the execution of the promise.
+ * @param {*} promise 
+ * @param {string} errorType 
+ */
 async function assertError(promise, errorType) {
   try {
     await promise;
