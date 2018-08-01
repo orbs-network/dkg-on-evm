@@ -10,6 +10,7 @@ Compatible with [BGLS](https://github.com/orbs-network/bgls) library.
 * [Truffle](https://truffleframework.com/)
     > install: `npm install -g truffle`
 * [Ganache](https://truffleframework.com/ganache)
+    * make sure at least 3 accounts are created.
 
 ### Installation
 ```
