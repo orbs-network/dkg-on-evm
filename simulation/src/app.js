@@ -475,8 +475,8 @@ async function sendComplaint(complainerIndex, accusedIndex) {
     logger.debug(`sendComplaint(): pubCommitG1_0=${pubCommitG1_0[0].toNumber()},${pubCommitG1_0[1].toNumber()} pubCommitG1_t=${pubCommitG1_t[0].toNumber()},${pubCommitG1_t[1].toNumber()}`);
     logger.debug(`sendComplaint(): decrypt(accusedEncPk=${accusedEncPk},complainerSk=${complainerSK},encPrvCommit=${encPrvCommit}`);
     // logger.debug(`sendComplaint(): g0_res=${g0_res} g1_res=${g1_res} gt_res=${gt_res}`);
-    logger.info("===========");
-    logger.info(await dkgContract.getParticipantPkEnc.call(complainerID));
+    // logger.info("===========");
+    // logger.info(await dkgContract.getParticipantPkEnc.call(complainerID));
     // const decryptRes = await dkgContract.decrypt.call(accusedEncPk, complainerSK, encPrvCommit);
     // logger.debug(`decrypt() res=${decryptRes}`);
 
