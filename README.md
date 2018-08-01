@@ -32,7 +32,7 @@ npm install
 * testTimeouts.js - tests timeouts occurnce in enrollment and commitment phases.
 
 ### Test issues
-* The tests take rather long this would be fixed in the future. Right now it seems that generating in the Ganache the minimum number of accounts fot the test (i.e., 3 accounts) decreases the test time substantially.
+* The tests may take rather long time. Right now there are two options to make the test go faster without damaging the quality of the tests. First, make sure the timeouts, that are defined inside the DKG contract, are small. Second, make sure that the not too many account are created in the Ganache client (the minimum number of accounts for the tests to work properly is 3 accounts).
 
 ## Simulation
 To be added

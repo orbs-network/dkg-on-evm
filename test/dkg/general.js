@@ -76,7 +76,7 @@ async function mineEmptyBlocks(numOfBlockToMine) {
   let startBlockNum = latestBlock.number;
   await dkgUtils.forceMineBlocks(numOfBlockToMine);
   latestBlock = await web3.eth.getBlock("latest");
-  assert(latestBlock.number-numOfBlockToMine == startBlockNum, "Not enough empty blocks were mined");
+  assert.equal(latestBlock.number-numOfBlockToMine, startBlockNum, "Not enough empty blocks were mined");
 }
 
 /**

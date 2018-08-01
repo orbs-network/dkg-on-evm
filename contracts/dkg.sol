@@ -114,9 +114,9 @@ contract dkg {
     uint16 public curNumCommittedLeft; // current num of participants that haven't committed 
     
     uint256 public phaseStart;
-    uint256 public constant joinTimeout = 100;
-    uint256 public constant commitTimeout = 200;
-    uint256 public constant postCommitTimeout = 150;
+    uint256 public constant joinTimeout = 12;
+    uint256 public constant commitTimeout = 11;
+    uint256 public constant postCommitTimeout = 5;
 
 
     // mapping from node's index to a participant
