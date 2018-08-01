@@ -4,6 +4,7 @@ const happyFlow = require('./dkg/happyFlow.js');
 const complaint = require('./dkg/complaint.js');
 const timeout = require('./dkg/timeout.js');
 const happyFlowData = require('./testsData/happyFlowData.js');
+const constants = require('./testsData/constants.js');
 
 
 
@@ -17,6 +18,18 @@ contract('DKG enrollment timeout', async (accounts) => {
     let instance = await dkg.deployed();
     let numOfParticipants = 1;
     await happyFlow.join(instance, accounts, happyFlowData.pks, numOfParticipants);
+  });
+
+  it("Try to close the contract before timeout", async() => {
+    let instance = await dkg.deployed();
+    const callerIndex = 0;
+    const joinTimeout = await instance.joinTimeout.call(); 
+    if(joinTimeout > 0) {
+      let lesThanTimeout =  Math.floor(Math.random() * joinTimeout);
+      await general.mineEmptyBlocks(lesThanTimeout);
+      await general.assertError(timeout.endEnrollment(
+        instance, accounts[callerIndex]), constants.errTypes.revert);
+    }
   });
 
   it("Wait for enrollment timeout to pass", async() => {
@@ -34,7 +47,7 @@ contract('DKG enrollment timeout', async (accounts) => {
     const callerIndex = 0;
 
     let funcEndEnrollment = async () => {
-      return await timeout.endEnrollment(instance, accounts[callerIndex]);
+      return timeout.endEnrollment(instance, accounts[callerIndex]);
     }
     let res = await general.getAccountsBalancesDiffAfterFunc(instance, accounts, funcEndEnrollment);
     
@@ -73,6 +86,18 @@ contract('DKG commit timeout', async (accounts) => {
       happyFlowData.pubCommitG1, happyFlowData.pubCommitG2, happyFlowData.prvCommitEnc, numOfParticipants);
   });
 
+  it("Try to close the contract before timeout", async() => {
+    let instance = await dkg.deployed();
+    const callerIndex = 0;
+    const commitTimeout = await instance.commitTimeout.call(); 
+    if(commitTimeout > 0) {
+      let lesThanTimeout =  Math.floor(Math.random() * commitTimeout);
+      await general.mineEmptyBlocks(lesThanTimeout);
+      await general.assertError(timeout.endCommit(
+        instance, accounts[callerIndex]), constants.errTypes.revert);
+    }
+  });
+
   it("Wait for commit timeout to pass", async() => {
     let instance = await dkg.deployed();
     let timeout = await instance.commitTimeout.call(); 
@@ -87,7 +112,7 @@ contract('DKG commit timeout', async (accounts) => {
     const callerIndex = 0;
 
     let funcEndCommit = async () => {
-      return await timeout.endCommit(instance, accounts[callerIndex]);
+      return timeout.endCommit(instance, accounts[callerIndex]);
     }
     let res = await general.getAccountsBalancesDiffAfterFunc(instance, accounts, funcEndCommit);
     

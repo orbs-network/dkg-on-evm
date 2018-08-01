@@ -3,12 +3,26 @@ const constants = require('../testsData/constants.js');
 const happyFlow = require('./happyFlow');
 
 
+/**
+ * Asserts contract ended with failure. Verifies no ether is left 
+ * in the contract.
+ * @param {*} instance 
+ */
 async function contractEndFail(instance) {
   await general.verifyPhase(constants.phase.endFail, instance);
   await general.verifyContractBalance(0);
   await general.assertError(happyFlow.phaseChange(instance), constants.errTypes.revert);
 }
 
+
+/**
+ * Send a complaint on private commitment.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {number} complainerIndex 
+ * @param {number} accusedIndex 
+ * @param {number} complainerSk 
+ */
 async function complainPrvCommitment(instance, accounts, complainerIndex, accusedIndex, complainerSk) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   let n = await instance.n.call();
@@ -25,6 +39,14 @@ async function complainPrvCommitment(instance, accounts, complainerIndex, accuse
 }
 
 
+/**
+ * Send a complaint on public commitment.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {number} complainerIndex 
+ * @param {number} accusedIndex
+ * @param {number} pubCommitIndex 
+ */
 async function complainPubCommitment(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   let n = await instance.n.call();
@@ -40,6 +62,14 @@ async function complainPubCommitment(instance, accounts, complainerIndex, accuse
 }
 
 
+/**
+ * Send a complaint on a committed point not in G1.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {number} complainerIndex 
+ * @param {number} accusedIndex
+ * @param {number} pubCommitIndex 
+ */
 async function complainNotInG1(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   let n = await instance.n.call();
@@ -55,6 +85,14 @@ async function complainNotInG1(instance, accounts, complainerIndex, accusedIndex
 }
 
 
+/**
+ * Send a complaint on a committed point not in G2.
+ * @param {*} instance 
+ * @param {string[]} accounts 
+ * @param {number} complainerIndex 
+ * @param {number} accusedIndex
+ * @param {number} pubCommitIndex 
+ */
 async function complainNotInG2(instance, accounts, complainerIndex, accusedIndex, pubCommitIndex) {
   await general.verifyPhase(constants.phase.postCommit, instance);
   let n = await instance.n.call();

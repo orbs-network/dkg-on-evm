@@ -4,8 +4,8 @@ const async = require("async");
 
 /**
  * Returns true iff the elements of 2 arrays are equal.
- * @param {Object[]} p1 
- * @param {Object[]} p2 
+ * @param {object[]} p1 
+ * @param {object[]} p2 
  */
 function isEqualPoints(p1, p2) {
     if (p1.length == p2.length)
