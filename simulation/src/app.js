@@ -134,6 +134,54 @@ async function deployManual() {
     let dkgSource = fs.readFileSync(CONTRACT_PATH, 'utf8');
     logger.info(`Compiling contract ${CONTRACT_PATH}`);
 
+    const ecOpsSources = {
+        sources: {
+            'ecOps.sol': ecOpsSource
+        }
+    };
+
+    let ecOpsCompiledContract = solc.compile(ecOpsSources, 1);
+    const ecOpsContractName = "ecOps.sol:ecOps";
+    const ecops_contract = ecOpsCompiledContract.contracts[ecOpsContractName];
+    let ecOpsAbi = ecops_contract.interface;
+    let ecOpsByteCode = '0x' + ecops_contract.bytecode;
+    let ECOPSContract = web3.eth.contract(JSON.parse(ecOpsAbi));
+
+    try {
+        await new Promise((resolve, reject) => {
+
+            ECOPSContract.new({
+                from: CLIENTS[0].address,
+                data: ecOpsByteCode,
+                gas: 1000000000,
+            }, (err, contractInstance) => {
+                if (err) {
+                    console.log(`Error returned from compile: ${err} ${JSON.stringify(err)}`);
+                }
+                if(!contractInstance) {
+                    return reject(new Error(`Sorry, cannot continue as contract was not deployed.`));
+                }
+                // if (!err) {
+                // NOTE: The callback will fire twice!
+                // Once the contract has the transactionHash property set and once its deployed on an address.
+
+                // e.g. check tx hash on the first call (transaction send)
+                if (!contractInstance.address) {
+                    logger.debug(`First callback call: txHash: ${contractInstance.transactionHash}`); // The hash of the transaction, which deploys the contract
+
+                    // check address on the second call (contract deployed)
+                } else {
+                    logger.debug(`Second callback call: address: ${contractInstance.address}`); // the contract address
+                    ECOPSContract = contractInstance;
+                    resolve(ECOPSContract);
+                }
+            });
+        });
+    } catch (e) {
+        console.log();
+        return Promise.reject(`Caught error: ${e} ${JSON.stringify(e)}`);
+    }
+
     const input = {
         sources: {
             'dkg.sol': dkgSource,
@@ -142,7 +190,7 @@ async function deployManual() {
         settings: {
             libraries: {
                 "dkg.sol": {
-                    "ecOps": "0xD620Ce17fC516671F0fA84Ac88e39dCBb0a1615A"
+                    "ecOps": ECOPSContract.address
                 }
             }
         }
@@ -158,7 +206,7 @@ async function deployManual() {
     let dkgAbi = dkg_contract.interface;
     // let ecOpsAbi = ecops_contract.interface;
     
-    let dkgByteCode = linker.linkBytecode(dkg_contract.bytecode, {"ecOps.sol:ecOps": "0xD620Ce17fC516671F0fA84Ac88e39dCBb0a1615A"});
+    let dkgByteCode = linker.linkBytecode(dkg_contract.bytecode, {"ecOps.sol:ecOps": ECOPSContract.address});
 
     dkgByteCode = '0x' + dkgByteCode;    
     // let ecOpsByteCode = ecops_contract.bytecode;
@@ -263,7 +311,7 @@ async function enroll(client, i) {
         const pk0 = web3.toBigNumber(client.pk[0]);
         const pk1 = web3.toBigNumber(client.pk[1]);
 
-        logger.info(`join() params: pk0: ${pk0} pk1: ${pk1}`);
+        logger.info(`join() params: pk0: ${client.pk[0]} pk1: ${client.pk[1]}`);
         dkgContract.join([pk0, pk1], // bigint[2]
             {
                 from: client.address,
@@ -427,7 +475,8 @@ async function sendComplaint(complainerIndex, accusedIndex) {
     logger.debug(`sendComplaint(): pubCommitG1_0=${pubCommitG1_0[0].toNumber()},${pubCommitG1_0[1].toNumber()} pubCommitG1_t=${pubCommitG1_t[0].toNumber()},${pubCommitG1_t[1].toNumber()}`);
     logger.debug(`sendComplaint(): decrypt(accusedEncPk=${accusedEncPk},complainerSk=${complainerSK},encPrvCommit=${encPrvCommit}`);
     // logger.debug(`sendComplaint(): g0_res=${g0_res} g1_res=${g1_res} gt_res=${gt_res}`);
-
+    logger.info("===========");
+    logger.info(await dkgContract.getParticipantPkEnc.call(complainerID));
     // const decryptRes = await dkgContract.decrypt.call(accusedEncPk, complainerSK, encPrvCommit);
     // logger.debug(`decrypt() res=${decryptRes}`);
 
