@@ -134,36 +134,37 @@ async function deployManual() {
     let dkgSource = fs.readFileSync(CONTRACT_PATH, 'utf8');
     logger.info(`Compiling contract ${CONTRACT_PATH}`);
 
-    var input = {
+    const input = {
         'ecOps.sol': ecOpsSource,
         'dkg.sol': dkgSource
     };
 
     let dkgCompiledContract = solc.compile({sources: input}, 1);
     // console.log('dkgCompiled: ', dkgCompiledContract);
-    // let ecOpsCompiledContract = solc.compile(ecOpsSource, 1);
+    let ecOpsCompiledContract = solc.compile(ecOpsSource, 1);
     const dkgContractName = "dkg.sol:dkg";
-    // const ecOpsContractName = ":" + ECOPS_CONTRACT_NAME;
+    const ecOpsContractName = ":ecOps";
     const dkg_contract = dkgCompiledContract.contracts[dkgContractName];
-    // const ecops_contract = ecOpsCompiledContract.contracts[ecOpsContractName];
+    const ecops_contract = ecOpsCompiledContract.contracts[ecOpsContractName];
+    // console.log(JSON.stringify(ecOpsCompiledContract.contracts));
     let dkgAbi = dkg_contract.interface;
-    // let ecOpsAbi = ecops_contract.interface;
-    let dkgByteCode = dkg_contract.bytecode;
-    // let ecOpsByteCode = ecops_contract.bytecode;
-    // let gasEstimate = web3.eth.estimateGas({data: bytecode});
+    let ecOpsAbi = ecops_contract.interface;
+    let dkgByteCode = '0x' + dkg_contract.bytecode;
+    let ecOpsByteCode = ecops_contract.bytecode;
+    // let gasEstimate = web3.eth.estimateGas({data: dkgByteCode});
     let DKGContract = web3.eth.contract(JSON.parse(dkgAbi));
-    // let ECOPSContract = web3.eth.contract(JSON.parse(ecOpsAbi));
-    logger.info(`Deploying contract ${CONTRACT_NAME} with t: ${THRESHOLD} n: ${CLIENT_COUNT} deposit_wei: ${DEPOSIT_WEI}`);
+    let ECOPSContract = web3.eth.contract(JSON.parse(ecOpsAbi));
+    logger.info(`Deploying contract ${CONTRACT_NAME}  Params: t: ${THRESHOLD} n: ${CLIENT_COUNT} deposit_wei: ${DEPOSIT_WEI}`);
 
     // dkgByteCode = linker.linkBytecode(dkgByteCode, { 'ecOps': ecOpsByteCode});
 
     try {
         await new Promise((resolve, reject) => {
-            DKGContract.new(THRESHOLD, CLIENT_COUNT, DEPOSIT_WEI, {
+
+            ECOPSContract.new(THRESHOLD, CLIENT_COUNT, DEPOSIT_WEI, {
                 from: CLIENTS[0].address,
                 data: dkgByteCode,
                 gas: 3000000,
-                gasLimit: 3000000
             }, (err, contractInstance) => {
                 if (err) {
                     console.log(`Error returned from compile: ${err} ${JSON.stringify(err)}`);

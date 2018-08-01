@@ -63,7 +63,7 @@ if ganache_running $GANACHE_PORT; then
   echo "Ganache instance already running on port $GANACHE_PORT, using it."
 else
   echo "Starting ganache instance"
-  ./node_modules/.bin/ganache-cli --accounts ${CLIENT_COUNT} --deterministic --mnemonic "${MNEMONIC}" -p "$GANACHE_PORT" > ganache.log &
+  ../node_modules/.bin/ganache-cli --accounts ${CLIENT_COUNT} --deterministic --mnemonic "${MNEMONIC}" -p "$GANACHE_PORT" > ganache.log &
   ganache_pid=$!
   echo "Started ganache with pid $ganache_pid"
 #  account_setup
