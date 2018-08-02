@@ -27,8 +27,8 @@ contract('DKG unjustified complaint - private commitment', async (accounts) => {
   });
 
   it("Unjustified Complaint: private commitment", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = happyFlowData.flow.complainer;
+    const accused = happyFlowData.flow.accused;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
     let n = await instance.n.call();
@@ -78,8 +78,8 @@ contract('DKG unjustified complaint - public commitment', async (accounts) => {
   });
 
   it("Unjustified Complaint: public commitment", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = happyFlowData.flow.complainer;
+    const accused = happyFlowData.flow.accused;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
     let n = await instance.n.call();
@@ -132,8 +132,8 @@ contract('DKG justified complaint - private commitment', async (accounts) => {
   });
 
   it("Justified Complaint: private commitment", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = corruptedData.flow.complainer;
+    const accused = corruptedData.flow.accused;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
     let n = await instance.n.call();
@@ -187,8 +187,8 @@ contract('DKG justified complaint - public commitment', async (accounts) => {
   });
 
   it("Justified Complaint: public commitment", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = corruptedData.flow.complainer;
+    const accused = corruptedData.flow.accused;
     const complainPubCommitIndex = 1;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
@@ -242,8 +242,8 @@ contract('DKG unjustified complaint - public commitment G1 not on the curve', as
   });
 
   it("Unjustified Complaint: public commitment G1 IS(!) on the curve", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = happyFlowData.flow.complainer;
+    const accused = happyFlowData.flow.accused;
     let instance = await dkg.deployed();
     let n = await instance.n.call();
     let numOfParticipants = n.toNumber();
@@ -309,9 +309,9 @@ contract('DKG justified complaint - public commitment G1 not on the curve', asyn
   });
 
   it("Justified Complaint: public commitment G1 is NOT on the curve", async () => {
-    const complainer = 0;
-    const accused = 1;
-    const pubCommitInd = 0;
+    const complainer = corruptedData2.flow.complainer;
+    const accused = corruptedData2.flow.accused;
+    const pubCommitInd = corruptedData2.flow.pubCommitCorruptInd;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
     let n = await instance.n.call();
@@ -362,8 +362,8 @@ contract('DKG unjustified complaint - public commitment G2 not on the curve', as
   });
 
   it("Unjustified Complaint: public commitment G2 IS(!) on the curve", async () => {
-    const complainer = 0;
-    const accused = 1;
+    const complainer = happyFlowData.flow.complainer;
+    const accused = happyFlowData.flow.accused;
     let instance = await dkg.deployed();
     let n = await instance.n.call();
     let numOfParticipants = n.toNumber();
@@ -429,9 +429,9 @@ contract('DKG justified complaint - public commitment G2 not on the curve', asyn
   });
 
   it("Justified Complaint: public commitment G2 is NOT on the curve", async () => {
-    const complainer = 0;
-    const accused = 1;
-    const pubCommitInd = 0;
+    const complainer = corruptedData2.flow.complainer;
+    const accused = corruptedData2.flow.accused;
+    const pubCommitInd = corruptedData2.flow.pubCommitCorruptInd;
     let instance = await dkg.deployed();
     let deposit = await instance.depositWei.call();
     let n = await instance.n.call();
