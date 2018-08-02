@@ -36,7 +36,7 @@ npm install
 * The tests may take rather long time. Right now there are two options to make the test go faster without damaging the quality of the tests. First, make sure the timeouts, that are defined inside the DKG contract, are small. Second, make sure that the not too many account are created in the Ganache client (the minimum number of accounts for the tests to work properly is 3 accounts).
 
 ## Simulation
-To be added
+In [simulation](https://github.com/orbs-network/dkg-on-evm/tree/master/simulation) directory.
 
 ## License
 MIT
