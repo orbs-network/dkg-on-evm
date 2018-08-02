@@ -21,6 +21,8 @@
     "homepage": "https://github.com/orbs-network/dkg-on-evm#readme",
     "dependencies": {
       "async": "^2.6.1",
-      "truffle": "^4.1.13"
+      "readline-sync": "^1.4.9",
+      "truffle": "^4.1.13",
+      "winston": "^3.0.0"
     }
   }
