@@ -1,4 +1,4 @@
-# bls-bn-curve
+# DKG - simulation
 
 Demo client of [BGLS package](https://github.com/orbs-network/bgls). It demonstrates 2 flows:
 * Happy flow - in which clients enroll with the DKG contract and then commit, and no client is trying to deceive any other client.
@@ -12,13 +12,16 @@ As this is a demo, some code parts are very rudimentary. There is nearly no erro
 ## Installation
 
 * Go to the directory under which you want to clone this repo
-* `git clone git@github.com:orbs-network/bls-bn-curve.git`
-* `cd bls-bn-curve`
+* `git clone git@github.com:orbs-network/dkg-on-evm.git`
+* `cd dkg-on-evm`
 * `yarn install`
 
 ## Prerequisites
 * node
 * truffle/ganache suite
+* [BGLS](https://github.com/orbs-network/bgls)
+    >
+    > make sure the executable is in the simulation directory
 
 ## Running examples
 

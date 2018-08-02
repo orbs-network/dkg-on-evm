@@ -62,12 +62,11 @@ function generateKeys(cb) {
             var clientData = {
                 address: accounts[i],
                 sk: json.sk,
-                pk: json.pk
+                pk: json.pk,
+                gasUsed: 0
             };
             CLIENTS.push(clientData);
-            // CLIENTS[i].address = ;
-            // CLIENTS[i].sk = ; // bigint (as hex string)
-            // CLIENTS[i].pk = ; // bigint[2] (as array hex string[2])
+            
             logger.info(`i: ${i} SK: ${CLIENTS[i].sk} PK0: ${CLIENTS[i].pk[0]} PK1: ${CLIENTS[i].pk[1]}`);
         }
         cb(err);
@@ -115,9 +114,12 @@ function processCommandLineArgs(myArgs) {
     THRESHOLD = myArgs.t;
     DEPOSIT_WEI = myArgs.d;
     OUTPUT_PATH = myArgs.j;
-    COMPLAINER_INDEX = myArgs.c;
-    MALICIOUS_INDEX = myArgs.m;
-    ACCUSED_INDEX = myArgs.a;
+    if(Number.isInteger(myArgs.c))
+    {
+        COMPLAINER_INDEX = myArgs.c;
+        MALICIOUS_INDEX = myArgs.m;
+        ACCUSED_INDEX = myArgs.a;
+    }
 }
 
 function populateParticipants() {

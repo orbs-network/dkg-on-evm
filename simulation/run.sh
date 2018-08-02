@@ -17,11 +17,16 @@ DEPOSIT_WEI=25000000000000000000
 KEEP_GANACHE_ALIVE=false
 DATA_FILE=$(pwd)/commit_data.json
 
-### To run the happy flow, put 0 as the value of the following 3 indexes. A nonzero value in all 3 indexes will trigger the complaint flow.
+### The happy flow is the default. Putting a nonzero value in all 3 indexes below will trigger the complaint flow.
+### Uncomment to enable the complaint flow.
 
-COMPLAINER_INDEX=1 # 1-based, the client that complains about client ACCUSED_INDEX
-MALICIOUS_INDEX=2 # 1-based, the client that actually tainted its data
-ACCUSED_INDEX=2 # 1-based, the client that is accused by client COMPLAINER_INDEX of tainting its data
+#COMPLAINER_INDEX=0 # 1-based, the client that complains about client ACCUSED_INDEX
+#MALICIOUS_INDEX=0 # 1-based, the client that actually tainted its data
+#ACCUSED_INDEX=0 # 1-based, the client that is accused by client COMPLAINER_INDEX of tainting its data
+
+
+
+
 
 while getopts ":n:t:pk" opt; do
   case $opt in
