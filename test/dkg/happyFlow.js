@@ -115,7 +115,7 @@ async function commit(instance, accounts, pubCommitG1Data, pubCommitG2Data, prvC
  */
 async function postCommit(instance, callerAccount) {
   await general.verifyPhase(constants.phase.postCommit, instance);
-  return await phaseChange(instance, callerAccount);
+  return await postCommitTimedOut(instance, callerAccount);
 }
 
 
@@ -127,11 +127,11 @@ async function postCommit(instance, callerAccount) {
  * closes the contract.
  * @returns {number} gas used
  */
-async function phaseChange(instance, callerAccount) {
+async function postCommitTimedOut(instance, callerAccount) {
   let timeout = await instance.postCommitTimeout.call(); 
   await general.mineEmptyBlocks(timeout.toNumber());
   let arg = callerAccount ? {from: callerAccount} : {};
-  let res = await instance.phaseChange(arg);
+  let res = await instance.postCommitTimedOut(arg);
   return res.receipt.gasUsed;
 }
 
@@ -152,6 +152,6 @@ module.exports = {
   join,
   commit,
   postCommit,
-  phaseChange,
+  postCommitTimedOut,
   contractEndSuccess
 };

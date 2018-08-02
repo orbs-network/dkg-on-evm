@@ -285,7 +285,7 @@ contract dkg {
 
     // Call this when in Phase.PostCommit for more than postCommitTimeout
     // blocks and no comlaint has to be made.
-    function phaseChange() 
+    function postCommitTimedOut() 
         inPhase(Phase.PostCommit)
         external 
     {

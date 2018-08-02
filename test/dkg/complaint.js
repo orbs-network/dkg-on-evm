@@ -11,7 +11,7 @@ const happyFlow = require('./happyFlow');
 async function contractEndFail(instance) {
   await general.verifyPhase(constants.phase.endFail, instance);
   await general.verifyContractBalance(0);
-  await general.assertError(happyFlow.phaseChange(instance), constants.errTypes.revert);
+  await general.assertError(happyFlow.postCommitTimedOut(instance), constants.errTypes.revert);
 }
 
 

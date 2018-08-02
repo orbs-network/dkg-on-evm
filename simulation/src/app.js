@@ -31,7 +31,7 @@ const CLIENTS = []; //require('../data/accounts');
 let dkgContract;
 
 let dataPerParticipant = [];
-const gasUsed = {join: 0, commit: 0, phaseChange: 0};
+const gasUsed = {join: 0, commit: 0, postCommitTimedOut: 0};
 
 const enrollBlockToClient = {};
 const commitBlockToClient = {};
@@ -99,7 +99,7 @@ async function main() {
                 fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataPerParticipant));
                 // logger.debug(`Data: ${JSON.stringify(dataPerParticipant)}`);
                 await commitAllClients(dataPerParticipant);
-                await phaseChange(CLIENTS[0]);
+                await postCommitTimedOut(CLIENTS[0]);
                 signAndVerify();
             }
         });
@@ -517,7 +517,7 @@ function signAndVerify() {
     bgls.SignAndVerify(THRESHOLD, CLIENT_COUNT, OUTPUT_PATH);
 }
 
-async function phaseChange(client) {
+async function postCommitTimedOut(client) {
 
 // Separate to execution cost (function of opcodes) and transaction cost (execution cost + fixed cost per tx)
 
@@ -525,23 +525,23 @@ async function phaseChange(client) {
 
     pause();
     await mineNBlocks(MIN_BLOCKS_MINED_TILL_COMMIT_IS_APPROVED);
-    logger.info(`No one complained, so calling phaseChange() to finalize commit phase. `);
-    logger.info(`Take note of the present balance of accounts and compare to after calling phaseChange().`);
+    logger.info(`No one complained, so calling postCommitTimedOut() to finalize commit phase. `);
+    logger.info(`Take note of the present balance of accounts and compare to after calling postCommitTimedOut().`);
     pause();
     const res = await new Promise((resolve, reject) => {
-        dkgContract.phaseChange({
+        dkgContract.postCommitTimedOut({
             from: client.address,
             gas: 300000
         }, (err, result) => {
             if (err) {
                 reject(err);
             } else {
-                console.log("phaseChange result: ", JSON.stringify(result));
+                console.log("postCommitTimedOut result: ", JSON.stringify(result));
                 const receipt = web3.eth.getTransactionReceipt(result);
                 // console.log(`Commit receipt: ${JSON.stringify(receipt)}`);
-                gasUsed.phaseChange += receipt.gasUsed;
+                gasUsed.postCommitTimedOut += receipt.gasUsed;
                 client.gasUsed += receipt.gasUsed;
-                logger.info(`phaseChange(): finished successfully. *** Gas used: ${receipt.gasUsed}. *** Block ${receipt.blockNumber}`);
+                logger.info(`postCommitTimedOut(): finished successfully. *** Gas used: ${receipt.gasUsed}. *** Block ${receipt.blockNumber}`);
                 logger.debug(`Commit(): Client ID #${client.id} ${client.address} committed successfully. Result: ${JSON.stringify(receipt)}`);
                 const balanceWei = web3.eth.getBalance(dkgContract.address);
                 logger.info(`Contract balance: ${balanceWei} wei`);
@@ -557,13 +557,10 @@ async function phaseChange(client) {
             }
         });
     });
-
-    // logger.info(`phaseChange(): finished successfully. *** Gas used: ${res.receipt.gasUsed}. *** Block: ${res.receipt.blockNumber}`);
-
 }
 
 function getTotalGasUsed() {
-    return gasUsed.join + gasUsed.commit + gasUsed.phaseChange;
+    return gasUsed.join + gasUsed.commit + gasUsed.postCommitTimedOut;
 }
 
 const mineOneBlock = async () => {
