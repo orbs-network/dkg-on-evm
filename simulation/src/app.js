@@ -11,7 +11,7 @@ const async = require('async');
 
 // Default values
 let CONTRACT_ADDRESS = '0xF7d58983Dbe1c84E03a789A8A2274118CC29b5da';
-let CLIENT_COUNT = 22;
+let CLIENT_COUNT;
 // const DEPOSIT_WEI = 25000000000000000000;      // 25 ether
 let DEPOSIT_WEI = 25000000000000000000; // 1e18 * 25
 let THRESHOLD = 14;
@@ -26,7 +26,7 @@ let MIN_BLOCKS_MINED_TILL_COMMIT_IS_APPROVED = 11;
 const ECOPS_CONTRACT_NAME = path.join(__dirname, '../../contracts/ecOps.sol');
 const CONTRACT_PATH = path.join(__dirname, '../../contracts/dkg.sol');
 const CONTRACT_NAME = 'dkg';
-const CLIENTS = require('../data/accounts');
+const CLIENTS = []; //require('../data/accounts');
 
 let dkgContract;
 
@@ -52,46 +52,58 @@ module.exports = async function (callback) {
 };
 
 // For each client, generate SK and PK
-function generateKeys() {
-    for (let i = 0; i < CLIENT_COUNT; i++) {
-        const res = bgls.GenerateKeyPair();
-        const json = JSON.parse(res);
-        CLIENTS[i].sk = json.sk; // bigint (as hex string)
-        CLIENTS[i].pk = json.pk; // bigint[2] (as array hex string[2])
-        logger.info(`i: ${i} SK: ${CLIENTS[i].sk} PK0: ${CLIENTS[i].pk[0]} PK1: ${CLIENTS[i].pk[1]}`)
-    }
-
+function generateKeys(cb) {
+    web3.eth.getAccounts((err, res) => {
+        let accounts = res; 
+        CLIENT_COUNT = accounts.length;
+        for (let i = 0; i < CLIENT_COUNT; i++) {
+            const res = bgls.GenerateKeyPair();
+            const json = JSON.parse(res);
+            var clientData = {
+                address: accounts[i],
+                sk: json.sk,
+                pk: json.pk
+            };
+            CLIENTS.push(clientData);
+            // CLIENTS[i].address = ;
+            // CLIENTS[i].sk = ; // bigint (as hex string)
+            // CLIENTS[i].pk = ; // bigint[2] (as array hex string[2])
+            logger.info(`i: ${i} SK: ${CLIENTS[i].sk} PK0: ${CLIENTS[i].pk[0]} PK1: ${CLIENTS[i].pk[1]}`);
+        }
+        cb(err);
+    });
 }
 
 async function main() {
     try {
         processCommandLineArgs(argv);
         logger.info('=====> Starting main flow <=====');
-        generateKeys();
-        await deployManual();
-        let timeout = await dkgContract.commitTimeout.call();
-        MIN_BLOCKS_MINED_TILL_COMMIT_IS_APPROVED = timeout + 1;
-        createPhaseChangeListener();
-        await enrollAllClients();
 
-        if (COMPLAINER_INDEX > 0 && MALICIOUS_INDEX > 0 && ACCUSED_INDEX > 0) {
-            logger.info(`Client ${COMPLAINER_INDEX} is complaining about client ${ACCUSED_INDEX}, and the actual culprit is client ${MALICIOUS_INDEX}`);
-            dataPerParticipant = getCommitDataWithErrors(COMPLAINER_INDEX, MALICIOUS_INDEX);
-            fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataPerParticipant));
-            // logger.info(`Data (partially tainted): ${JSON.stringify(dataPerParticipant)}`);
-            await commitAllClients(dataPerParticipant);
-            verifyPrivateCommit(COMPLAINER_INDEX, ACCUSED_INDEX);
-            await sendComplaint(COMPLAINER_INDEX, ACCUSED_INDEX);
-        } else {
-            logger.info('No one is complaining so running the contract to completion');
-            dataPerParticipant = getCommitData();
-            fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataPerParticipant));
-            // logger.debug(`Data: ${JSON.stringify(dataPerParticipant)}`);
-            await commitAllClients(dataPerParticipant);
-            await phaseChange(CLIENTS[0]);
-            signAndVerify();
-        }
+        generateKeys(async (err) => {
+            await deployManual();
+            let timeout = await dkgContract.commitTimeout.call();
+            MIN_BLOCKS_MINED_TILL_COMMIT_IS_APPROVED = timeout + 1;
+            createPhaseChangeListener();
+            await enrollAllClients();
 
+            if (COMPLAINER_INDEX > 0 && MALICIOUS_INDEX > 0 && ACCUSED_INDEX > 0) {
+                logger.info(`Client ${COMPLAINER_INDEX} is complaining about client ${ACCUSED_INDEX}, and the actual culprit is client ${MALICIOUS_INDEX}`);
+                dataPerParticipant = getCommitDataWithErrors(COMPLAINER_INDEX, MALICIOUS_INDEX);
+                fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataPerParticipant));
+                // logger.info(`Data (partially tainted): ${JSON.stringify(dataPerParticipant)}`);
+                await commitAllClients(dataPerParticipant);
+                verifyPrivateCommit(COMPLAINER_INDEX, ACCUSED_INDEX);
+                await sendComplaint(COMPLAINER_INDEX, ACCUSED_INDEX);
+            } else {
+                logger.info('No one is complaining so running the contract to completion');
+                dataPerParticipant = getCommitData();
+                fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataPerParticipant));
+                // logger.debug(`Data: ${JSON.stringify(dataPerParticipant)}`);
+                await commitAllClients(dataPerParticipant);
+                await phaseChange(CLIENTS[0]);
+                signAndVerify();
+            }
+        });
     } catch (e) {
         console.log(e);
         process.exit(2);

@@ -17,9 +17,6 @@ DEPOSIT_WEI=25000000000000000000
 KEEP_GANACHE_ALIVE=false
 DATA_FILE=$(pwd)/commit_data.json
 
-# Use this mnemonic in order for data/accounts.json to be correct
-MNEMONIC="decorate provide ritual swarm will inmate sausage lab banana daring trash liar"
-
 ### To run the happy flow, put 0 as the value of the following 3 indexes. A nonzero value in all 3 indexes will trigger the complaint flow.
 
 COMPLAINER_INDEX=1 # 1-based, the client that complains about client ACCUSED_INDEX
