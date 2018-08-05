@@ -20,8 +20,7 @@ As this is a demo, some code parts are very rudimentary. There is nearly no erro
 * node
 * truffle/ganache suite
 * [BGLS](https://github.com/orbs-network/bgls)
-    >
-    > make sure the executable is in the simulation directory
+    > create the executable in the simulation directory by the command `go build`
 
 ## Running examples
 

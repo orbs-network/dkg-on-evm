@@ -4,3 +4,4 @@ node_modules
 .*
 simulation/simulation
 simulation/commit_data.json
+*.log

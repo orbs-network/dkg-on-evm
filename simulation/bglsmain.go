@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/orbs-network/bgls/bgls"
-	. "github.com/orbs-network/bgls/curves"
-	"github.com/orbs-network/bgls/dkg"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/orbs-network/bgls/bgls"
+	. "github.com/orbs-network/bgls/curves"
+	"github.com/orbs-network/bgls/dkg"
 )
 
 // Usage examples:
@@ -191,10 +192,10 @@ func SignAndVerify(curve CurveSystem, threshold int, n int, data []*DataForCommi
 	fmt.Println("PASSED Verification that same PKs are shared between all participants")
 
 	fmt.Println("Completed one-time calculation of SK, PK and Commitments")
-	fmt.Println("** SECRET KEYS [DEBUG ONLY] **")
-	for _, sk := range skAll {
-		fmt.Printf("** SK: %x\n", sk)
-	}
+	// fmt.Println("** SECRET KEYS [DEBUG ONLY] **")
+	// for _, sk := range skAll {
+	// 	fmt.Printf("** SK: %x\n", sk)
+	// }
 	fmt.Println()
 
 	groupPk := dkg.GetGroupPublicKey(curve, pubCommitG2Zero)
