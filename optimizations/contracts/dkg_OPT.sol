@@ -429,11 +429,12 @@ contract dkg_OPT {
         uint256 prvCommit = uint256(decrypt(accusedEncPk, challengerSk, bytes32(encrypted)));
         
         if (!ecOps.isEqualPoints(ecOps.ecmul(g1, prvCommit), temp)) {
-            //slash(challenger);
-            revert();
+            slash(accused);
+            // revert();
         }
         else {
-            slash(accused);
+            // slash(challenger);
+            // revert();
         }
     }
 

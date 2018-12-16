@@ -20,13 +20,13 @@ async function complain(instance, accounts, challengerIndex, accusedIndex) {
 }
 
 
-async function initiateInteractiveDispute(instance, accounts, challengerIndex, accusedIndex, pubCommitG1) {
+async function initiateInteractiveDispute(instance, accounts, challengerIndex, accusedIndex, aggPubCommitG1) {
     return await interactiveDispute(
-        instance, accounts, challengerIndex, accusedIndex, pubCommitG1);
+        instance, accounts, challengerIndex, accusedIndex, aggPubCommitG1);
 }
 
 
-async function interactiveDispute(instance, accounts, challengerIndex, accusedIndex, pubCommitG1) {
+async function interactiveDispute(instance, accounts, challengerIndex, accusedIndex, aggPubCommitG1) {
     let numOfParticipants = (await instance.n.call()).toNumber();
     let t = await instance.t.call();
     let threshold = t.toNumber();
@@ -38,10 +38,12 @@ async function interactiveDispute(instance, accounts, challengerIndex, accusedIn
 
     while(h-l > 1) {
 
+        l += Math.ceil((h-l)/2);
+
         await general.verifyComplaintPhase(constants.complaintPhase.accusedTurn, instance);
 
         let argsAccused = [
-            pubCommitG1,
+            aggPubCommitG1[l],
             {from: accounts[accusedIndex-1]}
         ];
         
@@ -59,8 +61,6 @@ async function interactiveDispute(instance, accounts, challengerIndex, accusedIn
         gasAll[challengerIndex-1] += (await instance.complaintChallengerTurn(
             argsChallenged[0],argsChallenged[1])).receipt.gasUsed;
         countChallengerTxs++;
-
-        l += Math.ceil((h-l)/2);
     }
     
     return {gasAll, countAccusedTxs, countChallengerTxs};
