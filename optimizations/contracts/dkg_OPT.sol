@@ -1,4 +1,4 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.0;
 
 import "./ecOps.sol";
 
@@ -59,9 +59,10 @@ contract dkg_OPT {
 
 
     struct Participant {
-        address ethPk; // Ethereum pk
+        address payable ethPk; // Ethereum pk
         uint256[2] encPk; // pk for encryption
         bytes32 commit; // Merkle root of the public commitments
+        bool allReceived; // True iff the participant send all is commitments on-chain 
     }
 
     enum Phase { 
@@ -165,7 +166,7 @@ contract dkg_OPT {
     // A point on G1 that represents this participant's pk for encryption have
     // to be published. The publisher have to know the secret that generates
     // this point.
-    function join(uint256[2] encPk, bytes32 merkleCommit) 
+    function join(uint256[2] calldata encPk, bytes32 merkleCommit) 
         checkDeposit()
         inPhase(Phase.Enrollment)
         external payable 
@@ -173,17 +174,19 @@ contract dkg_OPT {
     {
 
         uint32 cn = curN;
-        address sender = msg.sender;
+        address payable sender = msg.sender;
 
 
         cn++;
-        participants[cn] = Participant({ethPk: sender, encPk: encPk, commit: merkleCommit});
+        participants[cn] = Participant({
+            ethPk: sender, encPk: encPk, commit: merkleCommit, allReceived: false});
 
         curN = cn;
         if(cn == 1) {
             phaseStart = block.number;
         } 
         
+        emit ParticipantJoined(cn);
 
         // Abort if capacity on participants was reached
         if(cn == n) {
@@ -192,7 +195,6 @@ contract dkg_OPT {
             emit PhaseChange(Phase.PostEnrollment);
         }
 
-        emit ParticipantJoined(cn);
         return cn;
     }    
     
@@ -214,13 +216,6 @@ contract dkg_OPT {
     }
 
 
-    function complainDataMissing(uint32 myIndex, uint32 otherIndex)
-        inPhase(Phase.PostEnrollment)
-        external
-    {
-
-    }
-
 
     // Call this to progress the contract to the next phase.
     // Up to this time any participant can complain for not receiving data.
@@ -228,6 +223,7 @@ contract dkg_OPT {
         inPhase(Phase.PostEnrollment)
         external 
     {
+        require(missingDataIndex == 0, "waiting to receive data from some participant");
         uint curBlockNum = block.number;
 
         require(curBlockNum > (phaseStart+postEnrollmentTimeout), "hasn't reached timeout yet");
@@ -251,7 +247,7 @@ contract dkg_OPT {
     }
 
 
-    function submitGroupPK(uint256[4] pk, uint32 index) 
+    function submitGroupPK(uint256[4] calldata pk, uint32 index) 
         inPhase(Phase.AllDataValid)
         checkAuthorizedSender(index)
         external 
@@ -297,14 +293,14 @@ contract dkg_OPT {
 
         for (uint32 i = 1; i < (nParticipants+1); i++) {
             if (i != slashedIndex) {
-                require(participants[i].ethPk.send(amount));
+                participants[i].ethPk.transfer(amount);
             }
         }
     }
     
     
-    function decrypt(uint256[2] encrypterPk, uint256 decrypterSk, bytes32 encData)
-        internal view
+    function decrypt(uint256[2] memory encrypterPk, uint256 decrypterSk, bytes32 encData)
+        internal
         returns(bytes32 decryptedData)
     {
         bytes32 secret = keccak256(abi.encodePacked(ecOps.ecmul(encrypterPk, decrypterSk)));
@@ -312,17 +308,74 @@ contract dkg_OPT {
     }
 
 
-    function verifySignature(address p, bytes32 hsh, uint8 v, bytes32 r, bytes32 s) public view returns(bool) {
+    function verifySignature(address p, bytes32 hsh, uint8 v, bytes32 r, bytes32 s) public pure returns(bool) {
         // Note: this only verifies that signer is correct.
         // You'll also need to verify that the hash of the data
         // is also correct.
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = keccak256(prefix, hsh);
+        bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hsh));
         return ecrecover(prefixedHash, v, r, s) == p;
     }
 
-
 /////////////////////////////////////////////////////////////////////////////
+    event DataReceived(
+        uint32 index,
+        uint256[] pubCommitG1, 
+        uint256[] pubCommitG2, 
+        uint256[] encPrCommit
+    );
+
+    uint32 public missingDataIndex;
+    uint256 public constant missingDataTimeout = 12;
+    uint256 public complainStart;
+
+    function complainDataMissing(uint32 accusedIndex)
+        inPhase(Phase.PostEnrollment)
+        external
+    {
+        if (!participants[accusedIndex].allReceived)
+        {
+            missingDataIndex = accusedIndex;
+            complainStart = block.number;
+        }
+    }
+
+
+    function dataMissingTimeout()
+        inPhase(Phase.PostEnrollment)
+        external
+    {
+        uint256 curBlock = block.number;
+        require((missingDataIndex > 0) && (curBlock > complainStart + missingDataTimeout),"");
+
+        slash(missingDataIndex);
+        curPhase = Phase.EndFail; 
+        emit PhaseChange(Phase.EndFail);
+    }
+
+
+    function postMissingData(
+        uint256[] calldata pubCommitG1, uint256[] calldata pubCommitG2, uint256[] calldata encPrCommit )
+        checkAuthorizedSender(missingDataIndex)
+        external
+    {
+        require(
+            pubCommitG1.length == (t*2 + 2)
+            && pubCommitG2.length == (t*4 + 4)
+            && encPrCommit.length == n-1, 
+            "input size invalid");
+
+        // Add signatures
+
+        emit DataReceived(missingDataIndex, pubCommitG1, pubCommitG2, encPrCommit);
+        missingDataIndex = 0;
+
+
+    }
+
+
+
+///////////////////////// Complaint: PubPriv ////////////////////////////////
     uint32 public challenger;
     uint32 public accused;
 
@@ -353,7 +406,7 @@ contract dkg_OPT {
         curComplaintPhase = SubShareComplaintPhase.AccusedTurn;
     }
 
-    function complaintAccusedTurn(uint256[2] zeta)
+    function complaintAccusedTurn(uint256[2] calldata zeta)
         checkAuthorizedSender(accused)
         inComplaintPhase(SubShareComplaintPhase.AccusedTurn)
         external
@@ -408,6 +461,7 @@ contract dkg_OPT {
         checkAuthorizedSender(challenger)
         inComplaintPhase(SubShareComplaintPhase.AllAgree)
         external 
+        returns(uint32 slashed)
     {
         // Check the challenger is not lying about its sk
         uint256[2] memory allegedChallengerPk = ecOps.ecmul(g1, challengerSk);
@@ -417,10 +471,10 @@ contract dkg_OPT {
         }
          
         address accusedAddress = participants[accused].ethPk;
-        uint256[2] accusedEncPk = participants[accused].encPk;
+        uint256[2] memory accusedEncPk = participants[accused].encPk;
 
         // Check the encrypted data is signed by the accused
-        bytes32 hashEnc = keccak256(bytes32(encrypted));
+        bytes32 hashEnc = keccak256(abi.encodePacked(bytes32(encrypted)));
         if (!verifySignature(accusedAddress, hashEnc, v, r,s)) {
             //slash(challenger);
             revert();
@@ -428,14 +482,18 @@ contract dkg_OPT {
 
         uint256 prvCommit = uint256(decrypt(accusedEncPk, challengerSk, bytes32(encrypted)));
         
-        if (!ecOps.isEqualPoints(ecOps.ecmul(g1, prvCommit), temp)) {
-            slash(accused);
+        if (!ecOps.isEqualPoints(ecOps.ecmul(g1, prvCommit), lastAgree)) {
+            slashed = accused;
             // revert();
         }
         else {
-            // slash(challenger);
+            slashed = challenger;
             // revert();
         }
+        slash(slashed);
+
+        curPhase = Phase.EndFail; 
+        emit PhaseChange(Phase.EndFail);
     }
 
 
@@ -445,7 +503,7 @@ contract dkg_OPT {
     function getParticipantPkEnc(uint32 participantIndex) 
         view 
         external 
-        returns(uint256[2] encPk)
+        returns(uint256[2] memory encPk)
     {
         return participants[participantIndex].encPk;
     }
@@ -463,7 +521,7 @@ contract dkg_OPT {
     function getGroupPK()
         view
         external
-        returns(uint256[4] pk)
+        returns(uint256[4] memory pk)
     {
         return groupPk;
     }

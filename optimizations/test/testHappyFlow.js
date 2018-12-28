@@ -11,7 +11,7 @@ const happyFlowData = require(util.format('./testsData/t%sn%s/happyFlowData.js',
 
 
 contract('DKG happy-flow', async (accounts) => {
-  accounts.shift(); // the first account will only deploy the contract
+  // accounts.shift(); // the first account will only deploy the contract
   
   it("Post-Deploy check", async() => {
     let instance = await dkg.deployed();

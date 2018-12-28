@@ -71,11 +71,12 @@ async function getAccountsBalancesDiffAfterFunc(instance, accounts, func) {
  */
 async function verifyContractBalance(expectedBalance) {
   let contractBalance = await web3.eth.getBalance(dkg.address);
+  
   assert.equal(
-    expectedBalance, contractBalance.toNumber(), 
+    expectedBalance, contractBalance, 
     util.format(
       "contract balance is %s while expected balance is %s", 
-      contractBalance.toNumber(), expectedBalance
+      contractBalance, expectedBalance
   ));
 }
 
@@ -112,12 +113,15 @@ async function assertError(promise, errorType) {
 
 
 async function sign(instance, msgToSign, account) {
-  var msgHash = web3.sha3(web3.toHex(msgToSign), {encoding: "hex"});
-  var signature = web3.eth.sign(account, msgHash);
+  
+  var msgHash = web3.utils.sha3(web3.utils.toHex(msgToSign), {encoding: "hex"});
+    
+  var signature = await web3.eth.sign(msgHash, account);
+
   var r = signature.slice(0, 66);
   var s = '0x' + signature.slice(66, 130);
   var v = '0x' + signature.slice(130, 132);
-  v = web3.toDecimal(v) + 27;
+  v = web3.utils.toDecimal(v) + 27;
 
   let args = [
       account,msgHash,v,r,s, {from: account}

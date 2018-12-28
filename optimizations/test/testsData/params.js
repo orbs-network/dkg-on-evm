@@ -1,6 +1,6 @@
 
 
 module.exports = {
-    n: 50,
-    t: 25
+    n: 10,
+    t: 5
 };

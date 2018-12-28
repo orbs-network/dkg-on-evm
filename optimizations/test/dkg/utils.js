@@ -26,8 +26,11 @@ function isEqualPoints(p1, p2) {
  */
 function forceMineBlocks(numOfBlockToMine) {
     var mineArr = [];
-    for (var i = 0; i < numOfBlockToMine; i++) {
-      mineArr.push(async.apply(web3.currentProvider.sendAsync, {
+    for (var i = 0; i < numOfBlockToMine; i++) {  
+      // web3.providers.HttpProvider.prototype.sendAsync = web3.providers.HttpProvider.prototype.send;  
+      // console.log(web3.currentProvider.sendAsync);
+        
+      mineArr.push(async.apply(web3.currentProvider.send, {
         jsonrpc: "2.0",
         method: "evm_mine",
         id: 12345

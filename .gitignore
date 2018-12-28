@@ -5,3 +5,9 @@ node_modules
 simulation/simulation
 simulation/commit_data.json
 *.log
+
+optimizations/test/testsData/t100n200/
+optimizations/test/testsData/t75n150/
+optimizations/test/testsData/t50n100/
+optimizations/test/testsData/t25n50/
+

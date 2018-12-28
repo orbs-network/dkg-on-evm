@@ -1,4 +1,4 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.0;
 
 library g2Ops {
 
@@ -7,23 +7,23 @@ library g2Ops {
 
 
     // Return true iff p1 equals to p2 (points on the elliptic curve)
-    function isEqualPoints(uint256[2] p1, uint256[2] p2) public pure
+    function isEqualPoints(uint256[2] memory p1, uint256[2] memory p2) public pure
         returns(bool isEqual)
     {
         return (p1[0] == p2[0] && p1[1] == p2[1]);
     }
 
 
-    function addGfp2(uint256[2] f1, uint256[2] f2) public pure
-        returns(uint256[2] f)
+    function addGfp2(uint256[2] memory f1, uint256[2] memory f2) public pure
+        returns(uint256[2] memory f)
     {
         f[0] = addmod(f1[0], f2[0], p);
         f[1] = addmod(f1[1], f2[1], p);
     }
 
 
-    function mulGfp2(uint256[2] f1, uint256[2] f2) public pure
-        returns(uint256[2] f)
+    function mulGfp2(uint256[2] memory f1, uint256[2] memory f2) public pure
+        returns(uint256[2] memory f)
     {
         uint256 t_x = mulmod(f1[0], f2[1], p);
         uint256 t = mulmod(f2[1], f1[0], p);
@@ -35,8 +35,8 @@ library g2Ops {
     }
 
 
-    function squareGfp2(uint256[2] f1) public pure
-        returns(uint256[2] f)
+    function squareGfp2(uint256[2] memory f1) public pure
+        returns(uint256[2] memory f)
     {
         uint256 t_x = addmod(f1[1], p-f1[0], p);
         uint256 t_y = addmod(f1[0], f1[1], p);
@@ -46,7 +46,7 @@ library g2Ops {
     }
 
 
-    function isOnC2Curve(uint256[4] p1) public pure
+    function isOnC2Curve(uint256[4] memory p1) public pure
         returns(bool)
     {
         // if (p1[0] == 0 && p1[1] == 0 && p1[2] == 0 && p1[3] == 0) {

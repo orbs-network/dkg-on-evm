@@ -1,4 +1,4 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.0;
     
 library ecOps {
     ////////////////////////////////////////////////////////
@@ -12,8 +12,8 @@ library ecOps {
 
     
 
-    function ecmul(uint256[2] p0, uint256 scalar) public view
-        returns(uint256[2] p1) 
+    function ecmul(uint256[2] memory p0, uint256 scalar) public
+        returns(uint256[2] memory p1) 
     {
         uint256[3] memory input;
         input[0] = p0[0];
@@ -29,8 +29,8 @@ library ecOps {
     }
 
 
-    function ecadd(uint256[2] p0, uint256[2] p1) public view
-        returns(uint256[2] p2) 
+    function ecadd(uint256[2] memory p0, uint256[2] memory p1) public
+        returns(uint256[2] memory p2) 
     {
         uint256[4] memory input;
         input[0] = p0[0];
@@ -47,7 +47,7 @@ library ecOps {
     }
 
 
-    function pairingCheck(uint256[2] x, uint256[4] w, uint256[2] y, uint256[4] z) 
+    function pairingCheck(uint256[2] memory x, uint256[4] memory w, uint256[2] memory y, uint256[4] memory z) 
         internal 
         returns (bool) 
     {
@@ -68,7 +68,7 @@ library ecOps {
 
 
     // Return true iff p1 equals to p2 (points on the elliptic curve)
-    function isEqualPoints(uint256[2] p1, uint256[2] p2) public pure
+    function isEqualPoints(uint256[2] memory p1, uint256[2] memory p2) public pure
         returns(bool isEqual)
     {
         return (p1[0] == p2[0] && p1[1] == p2[1]);
@@ -76,7 +76,7 @@ library ecOps {
 
 
     // Returns true iff p1 is in G1 group
-    function isInG1(uint256[2] p1) public pure
+    function isInG1(uint256[2] memory p1) public pure
         returns(bool)
     {
         if (p1[0] == 0 && p1[1] == 0) {
@@ -94,7 +94,7 @@ library ecOps {
 
     // TODO: make it more gas efficient by implementing the check by yourself
     // Returns true iff p1 is in G2.
-    function isInG2(uint256[4] p1) public view
+    function isInG2(uint256[4] memory p1) public
         returns(bool)
     {
         uint256[12] memory input = [

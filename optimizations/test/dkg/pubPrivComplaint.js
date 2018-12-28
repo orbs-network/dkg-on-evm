@@ -7,7 +7,8 @@ const general = require('./general.js');
 
 async function complain(instance, accounts, challengerIndex, accusedIndex) {
     await general.verifyPhase(constants.phase.allDataReceived, instance);
-
+    console.log();
+    
     let res = await instance.complainPubPrivData(
         challengerIndex, 
         accusedIndex, 
@@ -46,6 +47,8 @@ async function interactiveDispute(instance, accounts, challengerIndex, accusedIn
             aggPubCommitG1[l],
             {from: accounts[accusedIndex-1]}
         ];
+
+        
         
         gasAll[accusedIndex-1] += (await instance.complaintAccusedTurn(
             argsAccused[0],argsAccused[1])).receipt.gasUsed;
@@ -69,23 +72,30 @@ async function interactiveDispute(instance, accounts, challengerIndex, accusedIn
 
 async function disputeClosure(instance, accounts, challengerIndex, accusedIndex, encPrvCommit, challengerSk){
     await general.verifyComplaintPhase(constants.complaintPhase.allAgree, instance);
+    
 
     let numOfParticipants = (await instance.n.call()).toNumber();
     let gasAll = new Array(numOfParticipants).fill(0);
 
     let accusedAccount = accounts[accusedIndex-1];
     let signature = await general.sign(instance, encPrvCommit, accusedAccount);
-
+    
     let args = [
         encPrvCommit, signature.v, signature.r, 
         signature.s, challengerSk,
         {from: accounts[challengerIndex-1]}
     ];
+
+    let slashed = await instance.agreeUponAll.call(
+        args[0],args[1],args[2],args[3],args[4],args[5]);
     
     gasAll[challengerIndex-1] = (await instance.agreeUponAll(
         args[0],args[1],args[2],args[3],args[4],args[5])).receipt.gasUsed;
 
-    return gasAll;
+
+    await general.verifyPhase(constants.phase.endFail, instance);
+    
+    return {gasAll, slashed};
 }
 
 module.exports = {

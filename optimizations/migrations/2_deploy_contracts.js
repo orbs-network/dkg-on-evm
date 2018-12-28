@@ -5,7 +5,7 @@ const params = require('../test/testsData/params.js');
 
 const n = params.n;
 const t = params.t;
-const deposit = 10 * Math.pow(10,18);
+const deposit = 100000;
 
 module.exports = function(deployer) {
   deployer.deploy(ecOpsLib);

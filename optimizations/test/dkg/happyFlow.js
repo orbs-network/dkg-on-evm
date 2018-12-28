@@ -57,7 +57,8 @@ async function join(instance, accounts, pks, merkleCommitments, numOfParticipant
     assert.equal(indices[i], index.toNumber(), "error in index returned for participant");
 
     let pkEnc = await instance.getParticipantPkEnc.call(index);
-    assert(dkgUtils.isEqualPoints(pkEnc.map(x => x.toNumber()), pks[i]), "PK for encryption error")
+    
+    assert(dkgUtils.isEqualPoints(pkEnc.map(x => web3.utils.hexToNumberString(x)), pks[i]), "PK for encryption error");
 
     let merkleCommit = await instance.getParticipantMerkleCommit.call(index);
     assert.equal(merkleCommitments[i], merkleCommit, "Merkle commitment error")
@@ -80,8 +81,12 @@ async function postEnrollment(instance, callerAccount) {
 async function postEnrollmentTimedOut(instance, callerAccount) {
   let timeout = await instance.postEnrollmentTimeout.call(); 
   await general.mineEmptyBlocks(timeout.toNumber());
-  let arg = callerAccount ? {from: callerAccount} : {};
-  let res = await instance.postEnrollmentTimedOut(arg);
+  let res;
+  if (callerAccount) {
+    res = await instance.postEnrollmentTimedOut({from: callerAccount});
+  } else {
+    res = await instance.postEnrollmentTimedOut();
+  }
   return res.receipt.gasUsed;
 }
 
@@ -95,8 +100,14 @@ async function postDataReceived(instance, callerAccount) {
 async function postDataReceivedTimedOut(instance, callerAccount) {
   let timeout = await instance.allDataReceivedTimeout.call(); 
   await general.mineEmptyBlocks(timeout.toNumber());
-  let arg = callerAccount ? {from: callerAccount} : {};
-  let res = await instance.dataReceivedTimedOut(arg);
+
+  let res;
+  if (callerAccount) {
+    res = await instance.dataReceivedTimedOut({from: callerAccount});
+  } else {
+    res = await instance.dataReceivedTimedOut();
+  }
+
   return res.receipt.gasUsed;
 }
 
@@ -113,7 +124,8 @@ async function submitGroupPk(instance, accounts, groupPk, submitterIndex) {
   let gasUsed = (await instance.submitGroupPK(args[0], args[1], args[2])).receipt.gasUsed;
 
   let contractGroupPK = await instance.getGroupPK.call();        
-  assert(dkgUtils.isEqualPoints(contractGroupPK.map(x => x.toNumber()), groupPk), 
+
+  assert(dkgUtils.isEqualPoints(contractGroupPK.map(x => web3.utils.hexToNumberString(x)), groupPk), 
     "contract's group PK doesn't match the one sent");
 
   return gasUsed;
@@ -143,8 +155,13 @@ async function postGroupPk(instance, callerAccount) {
 async function postGroupPkTimedOut(instance, callerAccount) {
   let timeout = await instance.postGroupPkTimeout.call(); 
   await general.mineEmptyBlocks(timeout.toNumber());
-  let arg = callerAccount ? {from: callerAccount} : {};
-  let res = await instance.postGroupPkTimedOut(arg);
+  
+  let res;
+  if (callerAccount) {
+    res = await instance.postGroupPkTimedOut({from: callerAccount});
+  } else {
+    res = await instance.postGroupPkTimedOut();
+  }
   return res.receipt.gasUsed;
 }
 
