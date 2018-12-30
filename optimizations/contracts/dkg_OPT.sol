@@ -74,6 +74,10 @@ contract dkg_OPT {
         AccusedTurn, ChallengerTurn, AllAgree
     }
 
+    enum missingDataComplaintPhase {
+        AccusedTurn
+    }
+
     event PhaseChange(
         Phase phase
     );
@@ -317,7 +321,7 @@ contract dkg_OPT {
         return ecrecover(prefixedHash, v, r, s) == p;
     }
 
-/////////////////////////////////////////////////////////////////////////////
+/////////////////////// Complaint: MissingData //////////////////////////////
     event DataReceived(
         uint32 index,
         uint256[] pubCommitG1, 
@@ -327,17 +331,21 @@ contract dkg_OPT {
 
     uint32 public missingDataIndex;
     uint256 public constant missingDataTimeout = 12;
-    uint256 public complainStart;
 
-    function complainDataMissing(uint32 accusedIndex)
+    function complainDataMissing(uint32 challengerIndex, uint32 accusedIndex)
+        checkAuthorizedSender(challengerIndex)
         inPhase(Phase.PostEnrollment)
         external
     {
         if (!participants[accusedIndex].allReceived)
         {
             missingDataIndex = accusedIndex;
-            complainStart = block.number;
+            phaseStart = block.number;
+            
+            curPhase = Phase.Complaint; 
+            emit PhaseChange(Phase.Complaint);
         }
+        
     }
 
 
@@ -346,7 +354,7 @@ contract dkg_OPT {
         external
     {
         uint256 curBlock = block.number;
-        require((missingDataIndex > 0) && (curBlock > complainStart + missingDataTimeout),"");
+        require((missingDataIndex > 0) && (curBlock > phaseStart + missingDataTimeout),"");
 
         slash(missingDataIndex);
         curPhase = Phase.EndFail; 
@@ -355,24 +363,60 @@ contract dkg_OPT {
 
 
     function postMissingData(
-        uint256[] calldata pubCommitG1, uint256[] calldata pubCommitG2, uint256[] calldata encPrCommit )
-        checkAuthorizedSender(missingDataIndex)
-        external
+        uint256[] memory pubCommitG1, uint256[] memory pubCommitG2, uint256[] memory encPrCommit,
+        uint8[] memory vG1, bytes32[] memory rG1, bytes32[] memory sG1,
+        uint8[] memory vG2, bytes32[] memory rG2, bytes32[] memory sG2,
+        uint8[] memory vPr, bytes32[] memory rPr, bytes32[] memory sPr)
+        // checkAuthorizedSender(missingDataIndex)
+        public
     {
         require(
             pubCommitG1.length == (t*2 + 2)
             && pubCommitG2.length == (t*4 + 4)
-            && encPrCommit.length == n-1, 
+            && encPrCommit.length == (n-1), 
             "input size invalid");
 
-        // Add signatures
+        require(
+            vG1.length == (t+1)
+            && vG1.length == rG1.length && vG1.length == sG1.length
+            && vG1.length == vG2.length && vG1.length == rG2.length && vG1.length == sG2.length, 
+            "input size invalid");
+
+        require(
+            vPr.length == (n-1)
+            && vPr.length == rPr.length && vPr.length == sPr.length,
+            "input size invalid");        
+
+        address p = participants[missingDataIndex].ethPk;
+        // Check signatures
+        for(uint32 i = 0; i < (t+1); i++) {
+            bytes32 hsh = keccak256(abi.encodePacked(pubCommitG1[2*i], pubCommitG1[2*i+1]));
+            require(verifySignature(p, hsh, vG1[i], rG1[i], sG1[i]), "G1 sig error");
+        }
+        
+        helper(p,  pubCommitG2, vG2, rG2, sG2);
+
+        for(uint32 i = 0; i < (n-1); i++) {
+            bytes32 hsh = keccak256(abi.encodePacked(encPrCommit[i]));
+            require(verifySignature(p, hsh, vPr[i], rPr[i], sPr[i]), "Prv sig error");
+        }
 
         emit DataReceived(missingDataIndex, pubCommitG1, pubCommitG2, encPrCommit);
         missingDataIndex = 0;
-
-
     }
 
+
+    function helper(address p, uint256[] memory pubCommitG2, 
+        uint8[] memory vG2, bytes32[] memory rG2, bytes32[] memory sG2) 
+        internal 
+    {
+
+        for(uint32 i = 0; i < (t+1); i++) {
+            bytes32 hsh = keccak256(abi.encodePacked(
+                pubCommitG2[2*i], pubCommitG2[2*i+1], pubCommitG2[2*i+2], pubCommitG2[2*i+3]));
+            require(verifySignature(p, hsh, vG2[i], rG2[i], sG2[i]), "G2 sig error");
+        }
+    }
 
 
 ///////////////////////// Complaint: PubPriv ////////////////////////////////
@@ -498,7 +542,7 @@ contract dkg_OPT {
 
 
 
-////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
     function getParticipantPkEnc(uint32 participantIndex) 
         view 

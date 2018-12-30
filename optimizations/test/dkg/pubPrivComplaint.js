@@ -7,7 +7,6 @@ const general = require('./general.js');
 
 async function complain(instance, accounts, challengerIndex, accusedIndex) {
     await general.verifyPhase(constants.phase.allDataReceived, instance);
-    console.log();
     
     let res = await instance.complainPubPrivData(
         challengerIndex, 

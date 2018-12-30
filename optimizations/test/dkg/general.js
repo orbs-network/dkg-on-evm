@@ -115,6 +115,11 @@ async function assertError(promise, errorType) {
 async function sign(instance, msgToSign, account) {
   
   var msgHash = web3.utils.sha3(web3.utils.toHex(msgToSign), {encoding: "hex"});
+
+  return await signWithHash(instance, msgHash, account);
+}
+
+async function signWithHash(instance, msgHash, account) {
     
   var signature = await web3.eth.sign(msgHash, account);
 
@@ -143,5 +148,6 @@ module.exports = {
   getAccountsBalancesDiffAfterFunc,
   mineEmptyBlocks,
   assertError,
-  sign
+  sign,
+  signWithHash
 }
