@@ -57,8 +57,9 @@ async function postMissingData(instance, accounts, accusedIndex,
     pubCommitG2Data = _.flatMap(pubCommitG2Data);
 
     let vPr = [], rPr = [], sPr =[];
-    for (var i = 0; i < prvCommitEncData.length; ++i) {
-        let sig = await general.sign(instance, prvCommitEncData[i], accounts[accusedIndex-1]);        
+    for (var i = 0; i < prvCommitEncData.length; ++i) {        
+        let sig = await general.sign(instance, prvCommitEncData[i], accounts[accusedIndex-1]);
+        
         vPr.push(sig.v);
         rPr.push(sig.r);
         sPr.push(sig.s);
@@ -71,17 +72,46 @@ async function postMissingData(instance, accounts, accusedIndex,
         vG2, rG2, sG2,
         vPr, rPr, sPr,
         {from: accounts[accusedIndex-1]}];
-    // console.log(args);
-    
-    let res = await instance.postMissingData.apply(this, args);
+    // console.log(args[2]);
+    // console.log(args[9]);
+    // console.log(args[10]);
+    // console.log(args[11]);
+    // console.log(args[12]);
+
+    let res = await instance.postMissingData.apply(this, args);    
 
     return res.receipt.gasUsed;
-
 }
 
 
+async function postMissingDataSingleSignature(instance, accounts, accusedIndex, 
+    pubCommitG1Data, pubCommitG2Data, prvCommitEncData) {
+
+    // delete empty strings
+    prvCommitEncData = prvCommitEncData.filter(function (el) {
+        return el;
+    });
+
+    pubCommitG1Data = _.flatMap(pubCommitG1Data);
+
+    pubCommitG2Data = _.flatMap(pubCommitG2Data);
+ 
+    let hsh = web3.utils.soliditySha3.apply(this, pubCommitG1Data.concat(pubCommitG2Data).concat(prvCommitEncData));
+
+    let sig = await general.signWithHash(instance, hsh, accounts[accusedIndex-1]);
+    
+    let args = [
+        pubCommitG1Data, pubCommitG2Data, prvCommitEncData, 
+        sig.v, sig.r, sig.s,
+        {from: accounts[accusedIndex-1]}];
+    
+    let res = await instance.postMissingDataSingleSig.apply(this, args);    
+    
+    return res.receipt.gasUsed;
+}
 
 module.exports = {
     complain,
     postMissingData,
+    postMissingDataSingleSignature,
 };

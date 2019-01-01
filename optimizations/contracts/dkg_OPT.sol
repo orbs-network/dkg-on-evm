@@ -362,6 +362,23 @@ contract dkg_OPT {
     }
 
 
+    function postMissingDataSingleSig(   
+        uint256[] memory pubCommitG1, uint256[] memory pubCommitG2, uint256[] memory encPrCommit,
+        uint8 v, bytes32 r, bytes32 s)
+        public
+    {
+        require(
+            pubCommitG1.length == (t*2 + 2)
+            && pubCommitG2.length == (t*4 + 4)
+            && encPrCommit.length == (n-1), 
+            "input size invalid"
+        );
+        address p = participants[missingDataIndex].ethPk;
+        bytes32 hsh = keccak256(abi.encodePacked(pubCommitG1, pubCommitG2, encPrCommit));
+        require(verifySignature(p, hsh, v, r, s), "Sig error");
+        emit DataReceived(missingDataIndex, pubCommitG1, pubCommitG2, encPrCommit);
+    }
+
     function postMissingData(
         uint256[] memory pubCommitG1, uint256[] memory pubCommitG2, uint256[] memory encPrCommit,
         uint8[] memory vG1, bytes32[] memory rG1, bytes32[] memory sG1,
@@ -394,10 +411,11 @@ contract dkg_OPT {
             require(verifySignature(p, hsh, vG1[i], rG1[i], sG1[i]), "G1 sig error");
         }
         
-        helper(p,  pubCommitG2, vG2, rG2, sG2);
+        helperVerifyG2Sig(p, pubCommitG2, vG2, rG2, sG2);
 
         for(uint32 i = 0; i < (n-1); i++) {
             bytes32 hsh = keccak256(abi.encodePacked(encPrCommit[i]));
+            
             require(verifySignature(p, hsh, vPr[i], rPr[i], sPr[i]), "Prv sig error");
         }
 
@@ -406,14 +424,14 @@ contract dkg_OPT {
     }
 
 
-    function helper(address p, uint256[] memory pubCommitG2, 
+    function helperVerifyG2Sig(address p, uint256[] memory pubCommitG2, 
         uint8[] memory vG2, bytes32[] memory rG2, bytes32[] memory sG2) 
-        internal 
+        view internal 
     {
 
         for(uint32 i = 0; i < (t+1); i++) {
             bytes32 hsh = keccak256(abi.encodePacked(
-                pubCommitG2[2*i], pubCommitG2[2*i+1], pubCommitG2[2*i+2], pubCommitG2[2*i+3]));
+                pubCommitG2[4*i], pubCommitG2[4*i+1], pubCommitG2[4*i+2], pubCommitG2[4*i+3]));
             require(verifySignature(p, hsh, vG2[i], rG2[i], sG2[i]), "G2 sig error");
         }
     }

@@ -114,7 +114,7 @@ async function assertError(promise, errorType) {
 
 async function sign(instance, msgToSign, account) {
   
-  var msgHash = web3.utils.sha3(web3.utils.toHex(msgToSign), {encoding: "hex"});
+  var msgHash = web3.utils.soliditySha3(msgToSign);
 
   return await signWithHash(instance, msgHash, account);
 }
@@ -131,6 +131,8 @@ async function signWithHash(instance, msgHash, account) {
   let args = [
       account,msgHash,v,r,s, {from: account}
   ];
+  
+  // console.log(args);
   
   assert(await instance.verifySignature.call(
       args[0],args[1],args[2],args[3],args[4],args[5]), 
